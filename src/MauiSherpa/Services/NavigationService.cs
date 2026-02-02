@@ -14,7 +14,14 @@ public class NavigationService : INavigationService
 
     public Task NavigateToAsync(string route)
     {
-        _navigationManager.NavigateTo(route);
+        try
+        {
+            _navigationManager.NavigateTo(route);
+        }
+        catch (InvalidOperationException)
+        {
+            // NavigationManager may not be initialized yet (e.g., during early startup)
+        }
         return Task.CompletedTask;
     }
 

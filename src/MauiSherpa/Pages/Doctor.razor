@@ -6,6 +6,8 @@
 @inject IAlertService AlertService
 @inject IDialogService DialogService
 @inject IProcessModalService ProcessModal
+@inject IOperationModalService OperationModal
+@inject INavigationService NavigationService
 @inject MultiOperationModalService MultiOpModal
 @inject IFileSystemService FileSystem
 @inject ICopilotService CopilotService
@@ -899,6 +901,31 @@ else
 
     private async Task FixDependency(DependencyStatus dep)
     {
+        if (!string.IsNullOrEmpty(dep.FixAction))
+        {
+            if (dep.Category == DependencyCategory.AndroidSdk &&
+                dep.FixAction == "open-emulators")
+            {
+                await NavigationService.NavigateToAsync("emulators");
+                await AlertService.ShowToastAsync("Open the Emulators page to create a new AVD.");
+                return;
+            }
+
+            if (dep.Category == DependencyCategory.AndroidSdk &&
+                (dep.FixAction.StartsWith("install-android-package:") || dep.FixAction == "install-android-sdk"))
+            {
+                await RunAndroidSdkFix(dep);
+                return;
+            }
+
+            if (dep.Category == DependencyCategory.Workload &&
+                (dep.FixAction == "install-workloads" || dep.FixAction == "update-workloads"))
+            {
+                await RunWorkloadFix(dep);
+                return;
+            }
+        }
+
         // Build command based on dependency type
         ProcessRequest? request = null;
 
@@ -972,6 +999,57 @@ else
         {
             await AlertService.ShowAlertAsync("Fix Failed", $"Could not fix: {dep.Name}. Check the output for details.");
         }
+    }
+
+    private async Task RunAndroidSdkFix(DependencyStatus dep)
+    {
+        var result = await OperationModal.RunAsync(
+            $"Fix: {dep.Name}",
+            dep.Message ?? $"Installing {dep.Name}",
+            async ctx =>
+            {
+                ctx.LogInfo($"Starting fix for {dep.Name}");
+                var progress = new Progress<string>(msg =>
+                {
+                    ctx.SetStatus(msg);
+                    ctx.LogInfo(msg);
+                });
+
+                var success = await DoctorService.FixDependencyAsync(dep, progress);
+                if (success)
+                {
+                    ctx.LogSuccess($"Fixed: {dep.Name}");
+                }
+                else
+                {
+                    ctx.LogError($"Failed to fix: {dep.Name}");
+                }
+
+                return success;
+            },
+            canCancel: true);
+
+        if (result.Success)
+        {
+            await AlertService.ShowToastAsync($"Fixed: {dep.Name}");
+            await RunDoctor();
+        }
+        else if (result.FinalState != OperationState.Cancelled)
+        {
+            await AlertService.ShowAlertAsync("Fix Failed", $"Could not fix: {dep.Name}. Check the log for details.");
+        }
+    }
+
+    private async Task RunWorkloadFix(DependencyStatus dep)
+    {
+        var targetVersion = report?.AvailableWorkloadSetVersions?.FirstOrDefault();
+        if (string.IsNullOrEmpty(targetVersion))
+        {
+            await AlertService.ShowAlertAsync("No Workload Versions", "No workload set versions are available to install.");
+            return;
+        }
+
+        await UpdateToVersion(targetVersion);
     }
 
     private async Task UpdateToVersion(string version)
