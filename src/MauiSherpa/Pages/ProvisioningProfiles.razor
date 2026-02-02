@@ -101,7 +101,7 @@
                 var isInvalid = profile.State != "ACTIVE";
                 
                 <div class="profile-card @(isExpired || isInvalid ? "invalid" : isExpiringSoon ? "expiring" : "")">
-                    <div class="profile-icon"><i class="fas fa-file-alt"></i></div>
+                    <div class="profile-icon"><i class="fas fa-id-card"></i></div>
                     <div class="profile-details">
                         <div class="profile-name">@profile.Name</div>
                         <div class="profile-uuid">
@@ -311,6 +311,8 @@
     .btn-dropdown {
         border-top-left-radius: 0;
         border-bottom-left-radius: 0;
+        border-top-right-radius: 6px;
+        border-bottom-right-radius: 6px;
         padding: 6px 8px;
         border-left: 1px solid rgba(255,255,255,0.3);
     }
