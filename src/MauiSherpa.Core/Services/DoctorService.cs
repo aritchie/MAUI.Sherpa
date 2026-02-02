@@ -638,17 +638,7 @@ public class DoctorService : IDoctorService
             // Check for at least one AVD (Android Virtual Device)
             var avds = await _androidSdkService.GetAvdsAsync();
             var hasAvd = avds.Count > 0;
-            
-            dependencies.Add(new DependencyStatus(
-                "Android Emulator",
-                DependencyCategory.AndroidSdk,
-                null, null,
-                hasAvd ? $"{avds.Count} AVD(s)" : "No AVDs",
-                hasAvd ? DependencyStatusType.Ok : DependencyStatusType.Warning,
-                hasAvd ? $"{avds.Count} virtual device(s) configured" : "No Android virtual devices configured",
-                IsFixable: false
-            ));
-            
+
             // Check for system images
             var systemImages = installedPackages.Where(p => p.Path?.Contains("system-images") == true).ToList();
             if (systemImages.Count == 0)
@@ -663,6 +653,17 @@ public class DoctorService : IDoctorService
                     FixAction: "install-android-package:system-images"
                 ));
             }
+
+            dependencies.Add(new DependencyStatus(
+                "Android Emulator",
+                DependencyCategory.AndroidSdk,
+                null, null,
+                hasAvd ? $"{avds.Count} AVD(s)" : "No AVDs",
+                hasAvd ? DependencyStatusType.Ok : DependencyStatusType.Warning,
+                hasAvd ? $"{avds.Count} virtual device(s) configured" : "No Android virtual devices configured",
+                IsFixable: !hasAvd,
+                FixAction: hasAvd ? null : "open-emulators"
+            ));
         }
         catch (Exception ex)
         {
@@ -925,6 +926,20 @@ public class DoctorService : IDoctorService
             if (dependency.FixAction.StartsWith("install-android-package:"))
             {
                 var packageId = dependency.FixAction.Substring("install-android-package:".Length);
+                if (string.Equals(packageId, "system-images", StringComparison.OrdinalIgnoreCase))
+                {
+                    var resolved = await ResolveSystemImagePackageAsync(progress);
+                    if (string.IsNullOrEmpty(resolved))
+                    {
+                        _logger.LogWarning("No system image package could be resolved for installation");
+                        progress?.Report("No compatible system image package found");
+                        return false;
+                    }
+
+                    packageId = resolved;
+                    progress?.Report($"Resolved system image package: {packageId}");
+                }
+
                 progress?.Report($"Installing Android package: {packageId}");
                 return await _androidSdkService.InstallPackageAsync(packageId, progress);
             }
@@ -943,6 +958,71 @@ public class DoctorService : IDoctorService
         {
             _logger.LogError($"Failed to fix dependency: {ex.Message}", ex);
             return false;
+        }
+    }
+
+    private async Task<string?> ResolveSystemImagePackageAsync(IProgress<string>? progress)
+    {
+        try
+        {
+            progress?.Report("Finding a compatible system image...");
+            var available = await _androidSdkService.GetAvailablePackagesAsync();
+            var candidates = available
+                .Where(p => !string.IsNullOrEmpty(p.Path) && p.Path.StartsWith("system-images;android-", StringComparison.OrdinalIgnoreCase))
+                .Select(p => p.Path!)
+                .ToList();
+
+            if (candidates.Count == 0)
+            {
+                _logger.LogWarning("No available system image packages found");
+                return null;
+            }
+
+            var preferredAbi = RuntimeInformation.OSArchitecture == Architecture.Arm64
+                ? "arm64-v8a"
+                : "x86_64";
+
+            int Score(string path)
+            {
+                var parts = path.Split(';');
+                var apiPart = parts.FirstOrDefault(p => p.StartsWith("android-", StringComparison.OrdinalIgnoreCase));
+                var api = 0;
+                if (apiPart != null && int.TryParse(apiPart.Replace("android-", ""), out var parsedApi))
+                {
+                    api = parsedApi;
+                }
+
+                var vendor = parts.Length > 2 ? parts[2] : "";
+                var abi = parts.Length > 3 ? parts[3] : "";
+
+                var vendorScore = vendor switch
+                {
+                    "google_apis" => 30,
+                    "google_apis_playstore" => 25,
+                    "default" => 20,
+                    _ => 10
+                };
+
+                var abiScore = string.Equals(abi, preferredAbi, StringComparison.OrdinalIgnoreCase) ? 15 : 0;
+
+                return (api * 100) + vendorScore + abiScore;
+            }
+
+            var selected = candidates
+                .OrderByDescending(Score)
+                .FirstOrDefault();
+
+            if (!string.IsNullOrEmpty(selected))
+            {
+                _logger.LogInformation("Selected system image package: {Package}", selected);
+            }
+
+            return selected;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError("Failed to resolve system image package: {Message}", ex.Message);
+            return null;
         }
     }
     

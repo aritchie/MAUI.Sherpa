@@ -34,7 +34,7 @@ public static class MauiProgram
         builder.Services.AddSingleton<IAlertService, AlertService>();
         builder.Services.AddSingleton<ILoggingService, LoggingService>();
         builder.Services.AddSingleton<IPlatformService, PlatformService>();
-        builder.Services.AddSingleton<INavigationService, NavigationService>();
+        builder.Services.AddScoped<INavigationService, NavigationService>();
         builder.Services.AddSingleton<IDialogService, DialogService>();
         builder.Services.AddSingleton<IFileSystemService, FileSystemService>();
         builder.Services.AddSingleton<ISecureStorageService, SecureStorageService>();
