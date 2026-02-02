@@ -242,6 +242,6 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 - [.NET MAUI](https://github.com/dotnet/maui) - Cross-platform UI framework
 - [Shiny.Mediator](https://github.com/shinyorg/mediator) - Mediator pattern with caching
-- [AndroidSdk](https://github.com/AzureAD/microsoft-authentication-library-for-dotnet) - Android SDK management
-- [AppStoreConnectClient](https://github.com/user/AppStoreConnectClient) - Apple API client
-- [GitHub Copilot](https://github.com/features/copilot) - AI-powered assistance
+- [AndroidSdk](https://github.com/redth/androidsdk.tool) - Android SDK management APIs
+- [AppleDev.Tools](https://github.com/redth/appledev.tools) - Apple Developer Tools APIs and AppStoreConnect API client
+- [GitHub Copilot](https://github.com/github/copilot-sdk) - AI-powered assistance via Copilot SDK
