@@ -148,7 +148,7 @@ else
                         @foreach (var suggestion in suggestedPrompts)
                         {
                         <button class="suggestion-bubble" @onclick="@(() => UseSuggestion(suggestion))">
-                            <span class="bubble-text">"@suggestion.Prompt.Substring(0, Math.Min(80, suggestion.Prompt.Length))@(suggestion.Prompt.Length > 80 ? "..." : "")"</span>
+                            <span class="bubble-text">"@suggestion.Prompt"</span>
                             <i class="fas fa-arrow-right bubble-arrow"></i>
                         </button>
                     }
@@ -524,7 +524,7 @@ else
 
     .suggestion-bubble {
         display: inline-flex;
-        align-items: center;
+        align-items: flex-start;
         gap: 8px;
         padding: 10px 14px;
         background: linear-gradient(135deg, #f0f4ff 0%, #e8ecff 100%);
@@ -547,7 +547,8 @@ else
         font-size: 13px;
         color: #4338ca;
         font-style: italic;
-        line-height: 1.3;
+        line-height: 1.4;
+        word-wrap: break-word;
     }
 
     .bubble-arrow {
@@ -728,10 +729,10 @@ else
     private string userInput = "";
     private string currentResponse = "";
     private string currentTool = "";
-    private List<ChatMessage> messages = new();
     private ElementReference chatMessagesRef;
 
-    private record ChatMessage(string Content, bool IsUser);
+    // Use service's message list for persistence across navigation
+    private IReadOnlyList<CopilotChatMessage> messages => CopilotService.Messages;
 
     private readonly List<SuggestedPrompt> suggestedPrompts = new()
     {
@@ -786,6 +787,21 @@ else
 
     private async Task CheckAvailability()
     {
+        // Use cached availability if available for instant display
+        if (CopilotService.CachedAvailability != null)
+        {
+            availability = CopilotService.CachedAvailability;
+            isCheckingAvailability = false;
+            
+            // Auto-connect if Copilot is available and authenticated
+            if (availability.IsInstalled && availability.IsAuthenticated && !CopilotService.IsConnected)
+            {
+                await Connect();
+            }
+            StateHasChanged();
+            return;
+        }
+
         isCheckingAvailability = true;
         StateHasChanged();
 
@@ -842,7 +858,7 @@ else
         try
         {
             await CopilotService.DisconnectAsync();
-            messages.Clear();
+            CopilotService.ClearMessages();
             currentResponse = "";
         }
         catch (Exception ex)
@@ -871,7 +887,7 @@ else
         var message = userInput.Trim();
         userInput = "";
         
-        messages.Add(new ChatMessage(message, true));
+        CopilotService.AddUserMessage(message);
         currentResponse = "";
         isBusy = true;
         StateHasChanged();
@@ -888,7 +904,7 @@ else
         }
         catch (Exception ex)
         {
-            messages.Add(new ChatMessage($"Error: {ex.Message}", false));
+            CopilotService.AddAssistantMessage($"Error: {ex.Message}");
             isBusy = false;
             StateHasChanged();
         }
@@ -923,7 +939,7 @@ else
     {
         if (!string.IsNullOrEmpty(currentResponse))
         {
-            messages.Add(new ChatMessage(currentResponse, false));
+            CopilotService.AddAssistantMessage(currentResponse);
             currentResponse = "";
         }
         isBusy = false;
@@ -933,7 +949,7 @@ else
 
     private void OnCopilotError(string error)
     {
-        messages.Add(new ChatMessage($"Error: {error}", false));
+        CopilotService.AddAssistantMessage($"Error: {error}");
         isBusy = false;
         currentTool = "";
         InvokeAsync(StateHasChanged);

@@ -838,9 +838,14 @@ public interface ICopilotService
     string? CurrentSessionId { get; }
     
     /// <summary>
-    /// Check if the Copilot CLI is installed
+    /// Cached availability result from last check
     /// </summary>
-    Task<CopilotAvailability> CheckAvailabilityAsync();
+    CopilotAvailability? CachedAvailability { get; }
+    
+    /// <summary>
+    /// Check if the Copilot CLI is installed (caches result)
+    /// </summary>
+    Task<CopilotAvailability> CheckAvailabilityAsync(bool forceRefresh = false);
     
     /// <summary>
     /// Connect to the Copilot CLI
@@ -903,7 +908,32 @@ public interface ICopilotService
     /// Event fired when tool execution completes
     /// </summary>
     event Action<string, string>? OnToolComplete; // toolName, result
+    
+    /// <summary>
+    /// Chat messages in the current session
+    /// </summary>
+    IReadOnlyList<CopilotChatMessage> Messages { get; }
+    
+    /// <summary>
+    /// Add a user message to the chat history
+    /// </summary>
+    void AddUserMessage(string content);
+    
+    /// <summary>
+    /// Add an assistant message to the chat history
+    /// </summary>
+    void AddAssistantMessage(string content);
+    
+    /// <summary>
+    /// Clear all chat messages
+    /// </summary>
+    void ClearMessages();
 }
+
+/// <summary>
+/// A chat message in a Copilot conversation
+/// </summary>
+public record CopilotChatMessage(string Content, bool IsUser);
 
 /// <summary>
 /// Result of checking Copilot CLI availability

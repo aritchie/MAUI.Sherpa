@@ -10,13 +10,17 @@ public class CopilotService : ICopilotService, IAsyncDisposable
 {
     private readonly ILoggingService _logger;
     private readonly string _skillsPath;
+    private readonly List<CopilotChatMessage> _messages = new();
     
     private CopilotClient? _client;
     private CopilotSession? _session;
     private IDisposable? _eventSubscription;
+    private CopilotAvailability? _cachedAvailability;
 
     public bool IsConnected => _client?.State == ConnectionState.Connected;
     public string? CurrentSessionId => _session?.SessionId;
+    public IReadOnlyList<CopilotChatMessage> Messages => _messages.AsReadOnly();
+    public CopilotAvailability? CachedAvailability => _cachedAvailability;
 
     public event Action<string>? OnAssistantMessage;
     public event Action<string>? OnAssistantDelta;
@@ -71,8 +75,15 @@ public class CopilotService : ICopilotService, IAsyncDisposable
         return skillsPath;
     }
 
-    public async Task<CopilotAvailability> CheckAvailabilityAsync()
+    public async Task<CopilotAvailability> CheckAvailabilityAsync(bool forceRefresh = false)
     {
+        // Return cached result if available and not forcing refresh
+        if (!forceRefresh && _cachedAvailability != null)
+        {
+            _logger.LogInformation("Returning cached Copilot availability");
+            return _cachedAvailability;
+        }
+
         CopilotClient? tempClient = null;
         try
         {
@@ -100,23 +111,25 @@ public class CopilotService : ICopilotService, IAsyncDisposable
             {
                 var statusMsg = authResponse?.StatusMessage ?? "Not logged in to GitHub Copilot";
                 _logger.LogWarning($"Copilot not authenticated: {statusMsg}");
-                return new CopilotAvailability(
+                _cachedAvailability = new CopilotAvailability(
                     IsInstalled: true,
                     IsAuthenticated: false,
                     Version: version,
                     Login: authResponse?.Login,
                     ErrorMessage: statusMsg
                 );
+                return _cachedAvailability;
             }
 
             _logger.LogInformation($"Copilot authenticated as {authResponse.Login}");
-            return new CopilotAvailability(
+            _cachedAvailability = new CopilotAvailability(
                 IsInstalled: true,
                 IsAuthenticated: true,
                 Version: version,
                 Login: authResponse.Login,
                 ErrorMessage: null
             );
+            return _cachedAvailability;
         }
         catch (Exception ex)
         {
@@ -128,7 +141,7 @@ public class CopilotService : ICopilotService, IAsyncDisposable
                                  ex.Message.Contains("cannot find") ||
                                  ex is System.ComponentModel.Win32Exception;
             
-            return new CopilotAvailability(
+            _cachedAvailability = new CopilotAvailability(
                 IsInstalled: !isNotInstalled,
                 IsAuthenticated: false,
                 Version: null,
@@ -137,6 +150,7 @@ public class CopilotService : ICopilotService, IAsyncDisposable
                     ? "GitHub Copilot CLI is not installed" 
                     : ex.Message
             );
+            return _cachedAvailability;
         }
         finally
         {
@@ -361,6 +375,21 @@ public class CopilotService : ICopilotService, IAsyncDisposable
         {
             _logger.LogError($"Error handling session event: {ex.Message}", ex);
         }
+    }
+
+    public void AddUserMessage(string content)
+    {
+        _messages.Add(new CopilotChatMessage(content, true));
+    }
+
+    public void AddAssistantMessage(string content)
+    {
+        _messages.Add(new CopilotChatMessage(content, false));
+    }
+
+    public void ClearMessages()
+    {
+        _messages.Clear();
     }
 
     public async ValueTask DisposeAsync()
