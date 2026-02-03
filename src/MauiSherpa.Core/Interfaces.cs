@@ -956,3 +956,24 @@ public interface ICopilotToolsService
     /// </summary>
     IReadOnlyList<Microsoft.Extensions.AI.AIFunction> GetTools();
 }
+
+/// <summary>
+/// Service for coordinating splash screen visibility between MAUI and Blazor
+/// </summary>
+public interface ISplashService
+{
+    /// <summary>
+    /// Event fired when Blazor is ready and splash should hide
+    /// </summary>
+    event Action? OnBlazorReady;
+    
+    /// <summary>
+    /// Called by Blazor when it's fully loaded and ready
+    /// </summary>
+    void NotifyBlazorReady();
+    
+    /// <summary>
+    /// Whether Blazor has signaled it's ready
+    /// </summary>
+    bool IsBlazorReady { get; }
+}
