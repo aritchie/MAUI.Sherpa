@@ -557,8 +557,8 @@ else
 
     .sdk-list { display: flex; flex-direction: column; gap: 8px; }
     .sdk-item { display: flex; align-items: center; gap: 12px; padding: 8px 12px; background: var(--bg-tertiary); border-radius: 6px; }
-    .sdk-item.installed { background: #f0fff4; }
-    .sdk-item.latest { background: #c6f6d5; }
+    .sdk-item.installed { background: var(--status-success-bg); color: var(--status-success-text); }
+    .sdk-item.latest { background: var(--status-success-bg); color: var(--status-success-text); }
     .sdk-version { font-weight: 600; font-family: monospace; }
     
     .download-link {
@@ -570,20 +570,21 @@ else
         text-decoration: none;
         transition: background 0.2s;
     }
-    .download-link:hover { background: #2c5282; }
+    .download-link:hover { background: var(--accent-primary); }
 
     .available-versions { margin-top: 12px; display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
     .available-versions .label { font-size: 13px; color: var(--text-muted); }
     .version-tag { 
         padding: 4px 10px; 
-        background: var(--border-color); 
+        background: var(--bg-tertiary); 
         border-radius: 4px; 
         font-size: 12px; 
         font-family: monospace;
         cursor: pointer;
         transition: all 0.2s;
+        color: var(--text-secondary);
     }
-    .version-tag:hover { background: #cbd5e0; }
+    .version-tag:hover { background: var(--bg-hover); }
     .version-tag.current { background: var(--status-success-bg); color: var(--status-success-text); cursor: default; }
 
     .manifest-list { display: flex; flex-direction: column; gap: 12px; }
@@ -606,16 +607,16 @@ else
         margin-bottom: 8px;
     }
     .dep-item:last-child { margin-bottom: 0; }
-    .dep-item.status-ok { background: #f0fff4; }
-    .dep-item.status-warning { background: #fffaf0; }
-    .dep-item.status-error { background: #fff5f5; }
-    .dep-item.status-unknown { background: #f7fafc; }
+    .dep-item.status-ok { background: var(--status-success-bg); color: var(--status-success-text); }
+    .dep-item.status-warning { background: var(--status-warning-bg); color: var(--status-warning-text); }
+    .dep-item.status-error { background: var(--status-error-bg); color: var(--status-error-text); }
+    .dep-item.status-unknown { background: var(--bg-tertiary); }
 
     .dep-icon { font-size: 20px; }
     .dep-details { flex: 1; display: flex; flex-direction: column; gap: 2px; }
-    .dep-name { font-weight: 600; color: var(--text-primary); }
-    .dep-version { font-size: 13px; color: var(--text-secondary); font-family: monospace; }
-    .dep-message { font-size: 13px; color: var(--text-muted); }
+    .dep-name { font-weight: 600; }
+    .dep-version { font-size: 13px; font-family: monospace; }
+    .dep-message { font-size: 13px; }
 
     .timestamp { text-align: right; font-size: 12px; color: var(--text-muted); margin-top: 20px; }
 

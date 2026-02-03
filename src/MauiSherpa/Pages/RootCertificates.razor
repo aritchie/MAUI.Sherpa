@@ -117,9 +117,9 @@ else
     .not-supported {
         text-align: center;
         padding: 60px 20px;
-        background: #fff5f5;
+        background: var(--status-error-bg);
         border-radius: 12px;
-        border: 1px solid #feb2b2;
+        border: 1px solid var(--accent-danger);
     }
 
     .not-supported .warning-icon {
@@ -144,7 +144,8 @@ else
         align-items: center;
         gap: 12px;
         padding: 20px;
-        background: #ebf8ff;
+        background: var(--status-info-bg);
+        color: var(--status-info-text);
         border-radius: 8px;
         margin-bottom: 20px;
     }
@@ -219,13 +220,13 @@ else
     }
 
     .cert-item.installed {
-        background: #f0fff4;
-        border-color: #9ae6b4;
+        background: var(--status-success-bg);
+        border-color: var(--accent-success);
     }
 
     .cert-item.not-installed {
-        background: #fffaf0;
-        border-color: #fbd38d;
+        background: var(--status-warning-bg);
+        border-color: var(--accent-warning);
     }
 
     .cert-icon {
