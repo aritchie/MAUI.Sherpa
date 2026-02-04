@@ -266,14 +266,14 @@ public class AppleConnectService : IAppleConnectService
                     c.Id,
                     c.Attributes?.DisplayName ?? c.Attributes?.Name ?? "",
                     c.Attributes?.CertificateType.ToString() ?? "DEVELOPMENT",
-                    c.Attributes?.Platform.ToString() ?? "IOS",
+                    c.Attributes?.Platform.ToString() ?? "",
                     DateTime.UtcNow.AddYears(1), // CertificateAttributes doesn't have ExpirationDate directly
                     c.Attributes?.SerialNumber ?? ""))
                 .ToList();
             
             foreach (var cert in certs)
             {
-                _logger.LogInformation($"  Cert: {cert.Id} - {cert.Name} - Type: {cert.CertificateType}");
+                _logger.LogInformation($"  Cert: {cert.Id} - {cert.Name} - Type: {cert.CertificateType} - Platform: '{cert.Platform}'");
             }
             
             return certs;
