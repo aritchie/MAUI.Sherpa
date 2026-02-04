@@ -137,10 +137,14 @@
                             </button>
                         </div>
                         <div class="cert-badges">
-                            <span class="badge badge-type">@FormatCertType(cert.CertificateType)</span>
-                            @if (!string.IsNullOrEmpty(cert.Platform))
+                            @if (!string.IsNullOrEmpty(cert.CertificateType))
                             {
-                                <span class="badge badge-platform">@FormatPlatform(cert.Platform)</span>
+                                <span class="badge badge-type">@FormatCertType(cert.CertificateType)</span>
+                            }
+                            @{ var formattedPlatform = FormatPlatform(cert.Platform); }
+                            @if (!string.IsNullOrEmpty(formattedPlatform))
+                            {
+                                <span class="badge badge-platform">@formattedPlatform</span>
                             }
                             @if (isExpired)
                             {
@@ -1384,18 +1388,19 @@
         };
     }
 
-    private static string FormatPlatform(string? platform)
+    private string FormatPlatform(string? platform)
     {
-        if (string.IsNullOrEmpty(platform))
-            return "Unknown";
+        if (string.IsNullOrEmpty(platform) || platform.Equals("Unknown", StringComparison.OrdinalIgnoreCase))
+            return "";
             
         return platform.ToUpperInvariant() switch
         {
             "IOS" => "iOS",
-            "MAC_OS" => "macOS",
-            "MACOS" => "macOS",
+            "MAC_OS" or "MACOS" => "macOS",
+            "TV_OS" or "TVOS" => "tvOS",
+            "VISION_OS" or "VISIONOS" => "visionOS",
             "UNIVERSAL" => "Universal",
-            _ => platform.Replace("_", " ")
+            _ => platform.Replace("_", " ") // Fall back to cleaned-up original value
         };
     }
 
