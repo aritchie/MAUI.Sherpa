@@ -586,10 +586,14 @@
         errorMessage = "";
         try
         {
+            // If force refresh, invalidate the cache first
+            if (forceRefresh)
+            {
+                await Mediator.FlushStores($"apple:profiles:{IdentityState.SelectedIdentity.Id}");
+            }
+            
             var request = new GetProfilesRequest(IdentityState.SelectedIdentity.Id);
-            var (_, result) = forceRefresh 
-                ? await Mediator.Request(request, CancellationToken.None, ctx => ctx.ClearCache())
-                : await Mediator.Request(request);
+            var (_, result) = await Mediator.Request(request);
             profiles = result.ToList();
         }
         catch (Exception ex)
@@ -764,6 +768,10 @@
 
         if (result.Success)
         {
+            // Immediately remove from list for responsive UI
+            profiles.Remove(profile);
+            StateHasChanged();
+            
             await RefreshData(forceRefresh: true);
         }
     }

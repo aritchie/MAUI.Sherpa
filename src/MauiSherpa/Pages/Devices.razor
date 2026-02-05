@@ -346,9 +346,13 @@
         isLoading = true;
         try
         {
-            var (_, result) = forceRefresh
-                ? await Mediator.Request(new GetAndroidDevicesRequest(), CancellationToken.None, ctx => ctx.ClearCache())
-                : await Mediator.Request(new GetAndroidDevicesRequest());
+            // If force refresh, invalidate the cache first
+            if (forceRefresh)
+            {
+                await Mediator.FlushStores("android:devices");
+            }
+            
+            var (_, result) = await Mediator.Request(new GetAndroidDevicesRequest());
             devices = result?.ToList() ?? new();
         }
         finally

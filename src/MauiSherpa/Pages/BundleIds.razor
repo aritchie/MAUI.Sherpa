@@ -619,10 +619,14 @@
         errorMessage = "";
         try
         {
+            // If force refresh, invalidate the cache first
+            if (forceRefresh)
+            {
+                await Mediator.FlushStores($"apple:bundleids:{IdentityState.SelectedIdentity.Id}");
+            }
+            
             var request = new GetBundleIdsRequest(IdentityState.SelectedIdentity.Id);
-            var (_, result) = forceRefresh 
-                ? await Mediator.Request(request, CancellationToken.None, ctx => ctx.ClearCache())
-                : await Mediator.Request(request);
+            var (_, result) = await Mediator.Request(request);
             bundleIds = result.ToList();
         }
         catch (Exception ex)
@@ -697,6 +701,10 @@
 
         if (result.Success)
         {
+            // Immediately remove from list for responsive UI
+            bundleIds.Remove(bundle);
+            StateHasChanged();
+            
             await RefreshData(forceRefresh: true);
         }
     }
@@ -736,7 +744,7 @@
         }
         catch (Exception ex)
         {
-            await AlertService.ShowToastAsync($"Failed to load capabilities: {ex.Message}");
+            await AlertService.ShowAlertAsync("Error", $"Failed to load capabilities: {ex.Message}");
         }
         finally
         {
@@ -801,7 +809,7 @@
         }
         catch (Exception ex)
         {
-            await AlertService.ShowToastAsync($"Failed: {ex.Message}");
+            await AlertService.ShowAlertAsync("Error", $"Failed to toggle capability: {ex.Message}");
         }
         finally
         {

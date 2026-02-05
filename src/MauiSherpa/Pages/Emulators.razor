@@ -770,14 +770,18 @@
         
         try
         {
-            var (_, emuResult) = forceRefresh 
-                ? await Mediator.Request(new GetEmulatorsRequest(), CancellationToken.None, ctx => ctx.ClearCache())
-                : await Mediator.Request(new GetEmulatorsRequest());
+            // If force refresh, invalidate caches first
+            if (forceRefresh)
+            {
+                await Mediator.FlushStores("android:emulators");
+                await Mediator.FlushStores("android:systemimages");
+                await Mediator.FlushStores("android:packages:available");
+            }
+            
+            var (_, emuResult) = await Mediator.Request(new GetEmulatorsRequest());
             emulators = emuResult?.ToList() ?? new();
             
-            var (_, sysImgResult) = forceRefresh
-                ? await Mediator.Request(new GetSystemImagesRequest(), CancellationToken.None, ctx => ctx.ClearCache())
-                : await Mediator.Request(new GetSystemImagesRequest());
+            var (_, sysImgResult) = await Mediator.Request(new GetSystemImagesRequest());
             installedSystemImages = sysImgResult?.ToList() ?? new();
             
             var (_, deviceDefs) = await Mediator.Request(new GetDeviceDefinitionsRequest());
@@ -787,9 +791,7 @@
             availableSkins = skins?.ToList() ?? new();
             
             // Get available system images from available packages
-            var (_, availPkgs) = forceRefresh
-                ? await Mediator.Request(new GetAvailablePackagesRequest(), CancellationToken.None, ctx => ctx.ClearCache())
-                : await Mediator.Request(new GetAvailablePackagesRequest());
+            var (_, availPkgs) = await Mediator.Request(new GetAvailablePackagesRequest());
             availableSystemImages = (availPkgs ?? Enumerable.Empty<SdkPackageInfo>())
                 .Where(p => p.Path.StartsWith("system-images;"))
                 .Select(p => p.Path)
@@ -814,9 +816,12 @@
 
     private async Task RefreshRunningState(bool forceRefresh = false)
     {
-        var (_, devices) = forceRefresh
-            ? await Mediator.Request(new GetAndroidDevicesRequest(), CancellationToken.None, ctx => ctx.ClearCache())
-            : await Mediator.Request(new GetAndroidDevicesRequest());
+        if (forceRefresh)
+        {
+            await Mediator.FlushStores("android:devices");
+        }
+        
+        var (_, devices) = await Mediator.Request(new GetAndroidDevicesRequest());
         runningEmulators.Clear();
         
         foreach (var device in (devices ?? Enumerable.Empty<DeviceInfo>()).Where(d => d.IsEmulator))
@@ -1045,6 +1050,14 @@
 
         if (result.Success)
         {
+            // Immediately remove from list for responsive UI
+            var emulator = emulators.FirstOrDefault(e => e.Name == name);
+            if (emulator != null)
+            {
+                emulators.Remove(emulator);
+                StateHasChanged();
+            }
+            
             await RefreshEmulators(forceRefresh: true);
         }
     }

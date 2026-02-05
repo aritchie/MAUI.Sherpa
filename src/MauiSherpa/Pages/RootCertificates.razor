@@ -408,9 +408,13 @@ else
 
         try
         {
-            var (_, installedCerts) = forceRefresh
-                ? await Mediator.Request(new GetInstalledCertsRequest(), CancellationToken.None, ctx => ctx.ClearCache())
-                : await Mediator.Request(new GetInstalledCertsRequest());
+            // If force refresh, invalidate the cache first
+            if (forceRefresh)
+            {
+                await Mediator.FlushStores("local:applecerts");
+            }
+            
+            var (_, installedCerts) = await Mediator.Request(new GetInstalledCertsRequest());
             
             var certList = installedCerts?.ToList() ?? new();
             

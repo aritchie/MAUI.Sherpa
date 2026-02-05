@@ -401,10 +401,14 @@
         errorMessage = "";
         try
         {
+            // If force refresh, invalidate the cache first
+            if (forceRefresh)
+            {
+                await Mediator.FlushStores($"apple:devices:{IdentityState.SelectedIdentity.Id}");
+            }
+            
             var request = new GetAppleDevicesRequest(IdentityState.SelectedIdentity.Id);
-            var (_, result) = forceRefresh 
-                ? await Mediator.Request(request, CancellationToken.None, ctx => ctx.ClearCache())
-                : await Mediator.Request(request);
+            var (_, result) = await Mediator.Request(request);
             devices = result.ToList();
         }
         catch (Exception ex)
