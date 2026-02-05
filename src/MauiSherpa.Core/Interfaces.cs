@@ -43,6 +43,8 @@ public interface IDialogService
     Task<string?> ShowInputDialogAsync(string title, string message, string placeholder = "");
     Task<string?> ShowFileDialogAsync(string title, bool isSave = false, string[]? filters = null, string? defaultFileName = null);
     Task<string?> PickFolderAsync(string title);
+    Task<string?> PickOpenFileAsync(string title, string[]? extensions = null);
+    Task<string?> PickSaveFileAsync(string title, string suggestedName, string extension);
     Task CopyToClipboardAsync(string text);
 }
 
@@ -1944,4 +1946,84 @@ public interface ISecretsPublisherService
     /// Event fired when publishers list changes
     /// </summary>
     event Action? OnPublishersChanged;
+}
+
+// ============================================================================
+// Encrypted Settings Storage
+// ============================================================================
+
+/// <summary>
+/// Unified settings data model for MauiSherpa
+/// </summary>
+public record MauiSherpaSettings
+{
+    public int Version { get; init; } = 1;
+    public List<AppleIdentityData> AppleIdentities { get; init; } = new();
+    public List<CloudProviderData> CloudProviders { get; init; } = new();
+    public string? ActiveCloudProviderId { get; init; }
+    public List<SecretsPublisherData> SecretsPublishers { get; init; } = new();
+    public AppPreferences Preferences { get; init; } = new();
+    public DateTime LastModified { get; init; } = DateTime.UtcNow;
+}
+
+public record AppleIdentityData(
+    string Id,
+    string Name,
+    string KeyId,
+    string IssuerId,
+    string P8Content,
+    DateTime CreatedAt
+);
+
+public record CloudProviderData(
+    string Id,
+    string Name,
+    CloudSecretsProviderType ProviderType,
+    Dictionary<string, string> Settings,
+    bool IsActive = false
+);
+
+public record SecretsPublisherData(
+    string Id,
+    string ProviderId,
+    string Name,
+    Dictionary<string, string> Settings
+);
+
+public record AppPreferences
+{
+    public string Theme { get; init; } = "System";
+    public string? AndroidSdkPath { get; init; }
+    public bool AutoBackupEnabled { get; init; } = true;
+}
+
+/// <summary>
+/// Service for managing encrypted application settings
+/// </summary>
+public interface IEncryptedSettingsService
+{
+    Task<MauiSherpaSettings> GetSettingsAsync();
+    Task SaveSettingsAsync(MauiSherpaSettings settings);
+    Task UpdateSettingsAsync(Func<MauiSherpaSettings, MauiSherpaSettings> transform);
+    Task<bool> SettingsExistAsync();
+    event Action? OnSettingsChanged;
+}
+
+/// <summary>
+/// Service for backup and restore operations
+/// </summary>
+public interface IBackupService
+{
+    Task<byte[]> ExportSettingsAsync(string password);
+    Task<MauiSherpaSettings> ImportSettingsAsync(byte[] encryptedData, string password);
+    Task<bool> ValidateBackupAsync(byte[] data);
+}
+
+/// <summary>
+/// Service for migrating settings from legacy storage
+/// </summary>
+public interface ISettingsMigrationService
+{
+    Task<bool> NeedsMigrationAsync();
+    Task MigrateAsync();
 }
