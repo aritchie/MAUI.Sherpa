@@ -17,6 +17,7 @@
 @inject ICloudSecretsProviderFactory CloudSecretsProviderFactory
 @inject ISecretsPublisherService SecretsPublisherService
 @inject ISecretsPublisherFactory SecretsPublisherFactory
+@inject IBackupService BackupService
 @implements IDisposable
 
 <h1><i class="fas fa-cog"></i> @ViewModel.Title</h1>
@@ -357,6 +358,135 @@
         </div>
     </div>
 </div>
+
+<!-- Backup & Restore Section -->
+<div class="settings-section">
+    <h2><i class="fas fa-shield-alt"></i> Backup & Restore</h2>
+    <p class="section-description">
+        Export your settings to a password-protected file for backup or transfer to another machine.
+        All sensitive data (API keys, tokens) are encrypted using AES-256-GCM.
+    </p>
+    
+    <div class="settings-container">
+        <div class="backup-actions">
+            <div class="backup-action-card">
+                <div class="backup-icon export">
+                    <i class="fas fa-download"></i>
+                </div>
+                <div class="backup-info">
+                    <h3>Export Settings</h3>
+                    <p>Create a password-protected backup of all your settings including Apple identities, cloud providers, and CI/CD publishers.</p>
+                </div>
+                <button class="btn btn-primary" @onclick="ShowExportDialog" disabled="@isExporting">
+                    @if (isExporting)
+                    {
+                        <i class="fas fa-spinner fa-spin"></i>
+                        <span>Exporting...</span>
+                    }
+                    else
+                    {
+                        <i class="fas fa-file-export"></i>
+                        <span>Export</span>
+                    }
+                </button>
+            </div>
+            
+            <div class="backup-action-card">
+                <div class="backup-icon import">
+                    <i class="fas fa-upload"></i>
+                </div>
+                <div class="backup-info">
+                    <h3>Import Settings</h3>
+                    <p>Restore settings from a backup file. This will merge with or replace your existing settings.</p>
+                </div>
+                <button class="btn btn-secondary" @onclick="ShowImportDialog" disabled="@isImporting">
+                    @if (isImporting)
+                    {
+                        <i class="fas fa-spinner fa-spin"></i>
+                        <span>Importing...</span>
+                    }
+                    else
+                    {
+                        <i class="fas fa-file-import"></i>
+                        <span>Import</span>
+                    }
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@if (showExportDialog)
+{
+    <div class="modal-overlay" @onclick="CloseExportDialog">
+        <div class="modal modal-sm" @onclick:stopPropagation="true">
+            <div class="modal-header">
+                <h2>Export Settings</h2>
+                <button class="close-btn" @onclick="CloseExportDialog">×</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>Password</label>
+                    <input type="password" @bind="exportPassword" placeholder="Enter a secure password" />
+                    <div class="help-text">This password will be required to import the backup</div>
+                </div>
+                <div class="form-group">
+                    <label>Confirm Password</label>
+                    <input type="password" @bind="exportPasswordConfirm" placeholder="Confirm password" />
+                </div>
+                @if (!string.IsNullOrEmpty(exportError))
+                {
+                    <div class="error-message">@exportError</div>
+                }
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" @onclick="CloseExportDialog">Cancel</button>
+                <button class="btn btn-primary" @onclick="ExportSettings" 
+                        disabled="@(string.IsNullOrEmpty(exportPassword) || exportPassword != exportPasswordConfirm)">
+                    <i class="fas fa-download"></i> Export
+                </button>
+            </div>
+        </div>
+    </div>
+}
+
+@if (showImportDialog)
+{
+    <div class="modal-overlay" @onclick="CloseImportDialog">
+        <div class="modal modal-sm" @onclick:stopPropagation="true">
+            <div class="modal-header">
+                <h2>Import Settings</h2>
+                <button class="close-btn" @onclick="CloseImportDialog">×</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>Backup File</label>
+                    <div class="file-input-group">
+                        <input type="text" value="@importFilePath" placeholder="Select backup file" readonly />
+                        <button class="btn btn-secondary" @onclick="BrowseImportFile">
+                            <i class="fas fa-folder-open"></i> Browse
+                        </button>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Password</label>
+                    <input type="password" @bind="importPassword" placeholder="Enter backup password" />
+                </div>
+                @if (!string.IsNullOrEmpty(importError))
+                {
+                    <div class="error-message">@importError</div>
+                }
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" @onclick="CloseImportDialog">Cancel</button>
+                <button class="btn btn-primary" @onclick="ImportSettings"
+                        disabled="@(string.IsNullOrEmpty(importFilePath) || string.IsNullOrEmpty(importPassword))">
+                    <i class="fas fa-upload"></i> Import
+                </button>
+            </div>
+        </div>
+    </div>
+}
 
 @if (showIdentityDialog)
 {
@@ -1015,6 +1145,80 @@
         flex-wrap: wrap;
         gap: 16px;
     }
+
+    /* Backup & Restore Styles */
+    .backup-actions {
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+    }
+
+    .backup-action-card {
+        display: flex;
+        align-items: center;
+        gap: 20px;
+        padding: 20px;
+        background: var(--bg-tertiary);
+        border-radius: 8px;
+        border: 1px solid var(--border-color);
+    }
+
+    .backup-icon {
+        width: 56px;
+        height: 56px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 24px;
+        flex-shrink: 0;
+    }
+
+    .backup-icon.export {
+        background: linear-gradient(135deg, #4299e1, #3182ce);
+        color: white;
+    }
+
+    .backup-icon.import {
+        background: linear-gradient(135deg, #48bb78, #38a169);
+        color: white;
+    }
+
+    .backup-info {
+        flex: 1;
+    }
+
+    .backup-info h3 {
+        margin: 0 0 4px 0;
+        font-size: 16px;
+        font-weight: 600;
+        color: var(--text-primary);
+    }
+
+    .backup-info p {
+        margin: 0;
+        font-size: 13px;
+        color: var(--text-muted);
+        line-height: 1.4;
+    }
+
+    .modal-sm {
+        max-width: 440px;
+    }
+
+    .error-message {
+        background: rgba(245, 101, 101, 0.1);
+        border: 1px solid rgba(245, 101, 101, 0.3);
+        color: #c53030;
+        padding: 10px 14px;
+        border-radius: 6px;
+        font-size: 13px;
+    }
+
+    .theme-dark .error-message {
+        background: rgba(245, 101, 101, 0.15);
+        color: #fc8181;
+    }
 </style>
 
 @code {
@@ -1046,6 +1250,18 @@
     private string publisherName = "";
     private string publisherProviderId = "github";
     private Dictionary<string, string> publisherSettings = new();
+
+    // Backup/Restore state
+    private bool showExportDialog = false;
+    private bool showImportDialog = false;
+    private string exportPassword = "";
+    private string exportPasswordConfirm = "";
+    private string exportError = "";
+    private string importFilePath = "";
+    private string importPassword = "";
+    private string importError = "";
+    private bool isExporting = false;
+    private bool isImporting = false;
 
     private bool CanSaveIdentity => 
         !string.IsNullOrWhiteSpace(identityName) &&
@@ -1564,6 +1780,141 @@
         catch (Exception ex)
         {
             await AlertService.ShowAlertAsync("Connection Failed", ex.Message);
+        }
+    }
+
+    // Backup & Restore methods
+    private void ShowExportDialog()
+    {
+        exportPassword = "";
+        exportPasswordConfirm = "";
+        exportError = "";
+        showExportDialog = true;
+    }
+
+    private void CloseExportDialog()
+    {
+        showExportDialog = false;
+        exportPassword = "";
+        exportPasswordConfirm = "";
+        exportError = "";
+    }
+
+    private void ShowImportDialog()
+    {
+        importFilePath = "";
+        importPassword = "";
+        importError = "";
+        showImportDialog = true;
+    }
+
+    private void CloseImportDialog()
+    {
+        showImportDialog = false;
+        importFilePath = "";
+        importPassword = "";
+        importError = "";
+    }
+
+    private async Task BrowseImportFile()
+    {
+        var path = await DialogService.PickOpenFileAsync("Select Backup File", new[] { "mss" });
+        if (!string.IsNullOrEmpty(path))
+        {
+            importFilePath = path;
+            StateHasChanged();
+        }
+    }
+
+    private async Task ExportSettings()
+    {
+        if (exportPassword != exportPasswordConfirm)
+        {
+            exportError = "Passwords do not match";
+            return;
+        }
+
+        if (exportPassword.Length < 8)
+        {
+            exportError = "Password must be at least 8 characters";
+            return;
+        }
+
+        isExporting = true;
+        exportError = "";
+        StateHasChanged();
+
+        try
+        {
+            var encrypted = await BackupService.ExportSettingsAsync(exportPassword);
+            var timestamp = DateTime.Now.ToString("yyyyMMdd-HHmmss");
+            var suggestedName = $"maui-sherpa-backup-{timestamp}.mss";
+            
+            var savePath = await DialogService.PickSaveFileAsync("Save Backup", suggestedName, "mss");
+            if (!string.IsNullOrEmpty(savePath))
+            {
+                await File.WriteAllBytesAsync(savePath, encrypted);
+                await AlertService.ShowToastAsync("Settings exported successfully!");
+                CloseExportDialog();
+            }
+        }
+        catch (Exception ex)
+        {
+            exportError = $"Export failed: {ex.Message}";
+        }
+        finally
+        {
+            isExporting = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task ImportSettings()
+    {
+        if (string.IsNullOrEmpty(importFilePath) || !File.Exists(importFilePath))
+        {
+            importError = "Please select a valid backup file";
+            return;
+        }
+
+        isImporting = true;
+        importError = "";
+        StateHasChanged();
+
+        try
+        {
+            var encrypted = await File.ReadAllBytesAsync(importFilePath);
+            
+            if (!await BackupService.ValidateBackupAsync(encrypted))
+            {
+                importError = "Invalid backup file format";
+                isImporting = false;
+                StateHasChanged();
+                return;
+            }
+
+            var settings = await BackupService.ImportSettingsAsync(encrypted, importPassword);
+            
+            // Reload all data
+            await LoadAppleIdentities();
+            await LoadCloudProviders();
+            await LoadSecretsPublishers();
+            
+            await AlertService.ShowToastAsync("Settings imported successfully!");
+            CloseImportDialog();
+        }
+        catch (System.Security.Cryptography.CryptographicException)
+        {
+            importError = "Incorrect password";
+        }
+        catch (Exception ex)
+        {
+            importError = $"Import failed: {ex.Message}";
+        }
+        finally
+        {
+            isImporting = false;
+            StateHasChanged();
         }
     }
 }

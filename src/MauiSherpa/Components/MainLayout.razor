@@ -2,6 +2,8 @@
 @using MauiSherpa.Core.Interfaces
 @inject IThemeService ThemeService
 @inject ISplashService SplashService
+@inject ISettingsMigrationService MigrationService
+@inject ILoggingService Logger
 @implements IDisposable
 
 <div class="main-layout @ThemeClass">
@@ -88,6 +90,25 @@
         {
             // Notify MAUI that Blazor is ready - splash can be hidden
             SplashService.NotifyBlazorReady();
+            
+            // Run settings migration in background
+            _ = RunMigrationAsync();
+        }
+    }
+
+    private async Task RunMigrationAsync()
+    {
+        try
+        {
+            if (await MigrationService.NeedsMigrationAsync())
+            {
+                Logger.LogInformation("Running settings migration...");
+                await MigrationService.MigrateAsync();
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError($"Settings migration failed: {ex.Message}", ex);
         }
     }
 
