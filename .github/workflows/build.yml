@@ -23,9 +23,12 @@ jobs:
 
       - name: Select Xcode
         run: |
-          XCODE_PATH=$(ls -d /Applications/Xcode_26*.app 2>/dev/null | sort -V | tail -1)
-          if [ -z "$XCODE_PATH" ]; then
-            XCODE_PATH=$(ls -d /Applications/Xcode*.app 2>/dev/null | sort -V | tail -1)
+          if [ -d "/Applications/Xcode_26.2.app" ]; then
+            XCODE_PATH="/Applications/Xcode_26.2.app"
+          elif [ -d "/Applications/Xcode_26.2.0.app" ]; then
+            XCODE_PATH="/Applications/Xcode_26.2.0.app"
+          else
+            XCODE_PATH=$(ls -d /Applications/Xcode_26*.app 2>/dev/null | sort -rV | head -1)
           fi
           echo "Selected Xcode: $XCODE_PATH"
           sudo xcode-select -s "$XCODE_PATH"
@@ -71,16 +74,18 @@ jobs:
         run: |
           # List available Xcode installations
           ls -d /Applications/Xcode*.app 2>/dev/null
-          # Prefer Xcode_26.2.app (without .0 suffix) - it has complete SDK
-          XCODE_PATH=$(ls -d /Applications/Xcode_26.2.app /Applications/Xcode_26*.app 2>/dev/null | head -1)
-          if [ -z "$XCODE_PATH" ]; then
-            XCODE_PATH=$(ls -d /Applications/Xcode*.app 2>/dev/null | sort -V | tail -1)
+          # Select Xcode 26.2 specifically (required by .NET MacCatalyst SDK)
+          if [ -d "/Applications/Xcode_26.2.app" ]; then
+            XCODE_PATH="/Applications/Xcode_26.2.app"
+          elif [ -d "/Applications/Xcode_26.2.0.app" ]; then
+            XCODE_PATH="/Applications/Xcode_26.2.0.app"
+          else
+            XCODE_PATH=$(ls -d /Applications/Xcode_26*.app 2>/dev/null | sort -rV | head -1)
           fi
           echo "Selected Xcode: $XCODE_PATH"
           sudo xcode-select -s "$XCODE_PATH"
           sudo xcodebuild -license accept 2>/dev/null || true
           xcodebuild -version
-          xcrun --find actool
           # Set MD_APPLE_SDK_ROOT for .NET Xamarin SDK
           echo "MD_APPLE_SDK_ROOT=$XCODE_PATH" >> $GITHUB_ENV
 
