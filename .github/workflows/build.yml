@@ -9,7 +9,6 @@ on:
   workflow_dispatch:
 
 env:
-  DOTNET_VERSION: '10.0.x'
   DOTNET_NOLOGO: true
   DOTNET_CLI_TELEMETRY_OPTOUT: true
 
@@ -34,7 +33,10 @@ jobs:
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: ${{ env.DOTNET_VERSION }}
+          global-json-file: global.json
+
+      - name: Install MAUI workload
+        run: dotnet workload install maui
 
       - name: Restore dependencies
         run: dotnet restore MauiSherpa.sln
@@ -66,10 +68,10 @@ jobs:
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: ${{ env.DOTNET_VERSION }}
+          global-json-file: global.json
 
       - name: Install MAUI workload
-        run: dotnet workload install maui-maccatalyst
+        run: dotnet workload install maui
 
       - name: Import signing certificate and provisioning profile
         if: env.APPLE_CERTIFICATE_P12 != ''
@@ -223,10 +225,10 @@ jobs:
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: ${{ env.DOTNET_VERSION }}
+          global-json-file: global.json
 
       - name: Install MAUI workload
-        run: dotnet workload install maui-windows
+        run: dotnet workload install maui
 
       - name: Publish Windows App
         run: |
