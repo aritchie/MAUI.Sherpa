@@ -126,4 +126,107 @@ public class DialogService : IDialogService
         
         await Clipboard.Default.SetTextAsync(text);
     }
+
+    public async Task<string?> PickOpenFileAsync(string title, string[]? extensions = null)
+    {
+#if MACCATALYST
+        var tcs = new TaskCompletionSource<string?>();
+        
+        await MainThread.InvokeOnMainThreadAsync(() =>
+        {
+            var types = new List<UTType>();
+            if (extensions != null)
+            {
+                foreach (var ext in extensions)
+                {
+                    var cleanExt = ext.TrimStart('.');
+                    var utType = UTType.CreateFromExtension(cleanExt);
+                    if (utType != null)
+                        types.Add(utType);
+                }
+            }
+            if (types.Count == 0)
+                types.Add(UTTypes.Data);
+
+            var picker = new UIDocumentPickerViewController(types.ToArray(), false);
+            picker.AllowsMultipleSelection = false;
+
+            picker.DidPickDocument += (sender, e) =>
+            {
+                var url = e.Url;
+                if (url != null)
+                {
+                    url.StartAccessingSecurityScopedResource();
+                    tcs.TrySetResult(url.Path);
+                }
+                else
+                {
+                    tcs.TrySetResult(null);
+                }
+            };
+
+            picker.WasCancelled += (sender, e) =>
+            {
+                tcs.TrySetResult(null);
+            };
+
+            var viewController = Microsoft.Maui.ApplicationModel.Platform.GetCurrentUIViewController();
+            viewController?.PresentViewController(picker, true, null);
+        });
+
+        return await tcs.Task;
+#else
+        return await Task.FromResult<string?>(null);
+#endif
+    }
+
+    public async Task<string?> PickSaveFileAsync(string title, string suggestedName, string extension)
+    {
+#if MACCATALYST
+        var tcs = new TaskCompletionSource<string?>();
+        
+        await MainThread.InvokeOnMainThreadAsync(async () =>
+        {
+            // Create temp file with suggested name
+            var tempDir = Path.GetTempPath();
+            var tempPath = Path.Combine(tempDir, suggestedName);
+            if (!File.Exists(tempPath))
+                await File.WriteAllBytesAsync(tempPath, Array.Empty<byte>());
+
+            var tempUrl = NSUrl.FromFilename(tempPath);
+            
+            #pragma warning disable CA1422 // Obsolete API - no good alternative yet
+            var picker = new UIDocumentPickerViewController(new[] { tempUrl }, UIDocumentPickerMode.MoveToService);
+            #pragma warning restore CA1422
+            
+            picker.DidPickDocument += (sender, e) =>
+            {
+                var url = e.Url;
+                if (url != null)
+                {
+                    url.StartAccessingSecurityScopedResource();
+                    tcs.TrySetResult(url.Path);
+                }
+                else
+                {
+                    tcs.TrySetResult(null);
+                }
+            };
+
+            picker.WasCancelled += (sender, e) =>
+            {
+                // Clean up temp file
+                try { File.Delete(tempPath); } catch { }
+                tcs.TrySetResult(null);
+            };
+
+            var viewController = Microsoft.Maui.ApplicationModel.Platform.GetCurrentUIViewController();
+            viewController?.PresentViewController(picker, true, null);
+        });
+
+        return await tcs.Task;
+#else
+        return await Task.FromResult<string?>(null);
+#endif
+    }
 }

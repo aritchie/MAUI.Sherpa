@@ -76,6 +76,11 @@ public static class MauiProgram
         builder.Services.AddSingleton<ISecretsPublisherFactory, SecretsPublisherFactory>();
         builder.Services.AddSingleton<ISecretsPublisherService, SecretsPublisherService>();
 
+        // Encrypted Settings services
+        builder.Services.AddSingleton<IEncryptedSettingsService, EncryptedSettingsService>();
+        builder.Services.AddSingleton<IBackupService, BackupService>();
+        builder.Services.AddSingleton<ISettingsMigrationService, SettingsMigrationService>();
+
         // ViewModels
         builder.Services.AddSingleton<DashboardViewModel>();
         builder.Services.AddSingleton<AndroidSdkViewModel>();
@@ -83,11 +88,12 @@ public static class MauiProgram
         builder.Services.AddSingleton<CopilotViewModel>();
         builder.Services.AddSingleton<SettingsViewModel>();
 
-        // Shiny Mediator with caching
+        // Shiny Mediator with caching and offline support
         builder.AddShinyMediator(cfg =>
         {
             cfg.UseMaui();
-            cfg.AddMemoryCaching();
+            cfg.AddMauiPersistentCache(); // Use persistent cache (includes memory caching)
+            cfg.AddStandardAppSupportMiddleware();
         });
         
         // Register handlers from Core assembly
