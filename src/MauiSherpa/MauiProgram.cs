@@ -34,6 +34,7 @@ public static class MauiProgram
         builder.Services.AddSingleton<ISplashService, SplashService>();
         
         // Platform services
+        builder.Services.AddSingleton<BlazorToastService>();
         builder.Services.AddSingleton<IAlertService, AlertService>();
         builder.Services.AddSingleton<ILoggingService, LoggingService>();
         builder.Services.AddSingleton<IPlatformService, PlatformService>();

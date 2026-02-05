@@ -1,0 +1,42 @@
+@using MauiSherpa.Services
+@implements IDisposable
+@inject BlazorToastService ToastService
+
+<div class="toast-container">
+    @foreach (var toast in ToastService.Toasts)
+    {
+        <div class="toast toast-@toast.Type.ToString().ToLower() @(toast.IsExiting ? "exiting" : "")" @key="toast.Id">
+            <i class="fas @GetIcon(toast.Type)"></i>
+            <span class="toast-message">@toast.Message</span>
+            <button class="toast-dismiss" @onclick="() => ToastService.Dismiss(toast)">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+    }
+</div>
+
+@code {
+    protected override void OnInitialized()
+    {
+        ToastService.OnChange += HandleToastChange;
+    }
+
+    private void HandleToastChange()
+    {
+        InvokeAsync(StateHasChanged);
+    }
+
+    private string GetIcon(ToastType type) => type switch
+    {
+        ToastType.Success => "fa-check-circle",
+        ToastType.Info => "fa-info-circle",
+        ToastType.Warning => "fa-exclamation-triangle",
+        ToastType.Error => "fa-times-circle",
+        _ => "fa-info-circle"
+    };
+
+    public void Dispose()
+    {
+        ToastService.OnChange -= HandleToastChange;
+    }
+}
