@@ -331,4 +331,41 @@ public class UpdateServiceTests
         result.Should().BeEmpty();
         _mockLogger.Verify(x => x.LogError(It.IsAny<string>(), It.IsAny<Exception>()), Times.Once);
     }
+
+    [Fact]
+    public async Task CheckForUpdateAsync_HandlesPreReleaseVersionFormat()
+    {
+        // Arrange - version with pre-release suffix should still compare correctly
+        var mockResponse = new HttpResponseMessage(HttpStatusCode.OK)
+        {
+            Content = JsonContent.Create(new[]
+            {
+                new
+                {
+                    tag_name = "v2.0.0-beta.1",
+                    name = "v2.0.0-beta.1",
+                    body = "Beta with pre-release tag",
+                    prerelease = false, // Marked as stable for test purposes
+                    draft = false,
+                    published_at = DateTime.UtcNow,
+                    html_url = "https://github.com/redth/MAUI.Sherpa/releases/tag/v2.0.0-beta.1"
+                }
+            })
+        };
+
+        _mockHttpMessageHandler
+            .Protected()
+            .Setup<Task<HttpResponseMessage>>(
+                "SendAsync",
+                ItExpr.IsAny<HttpRequestMessage>(),
+                ItExpr.IsAny<CancellationToken>())
+            .ReturnsAsync(mockResponse);
+
+        // Act
+        var result = await _service.CheckForUpdateAsync();
+
+        // Assert
+        result.UpdateAvailable.Should().BeTrue(); // 2.0.0 > 1.0
+        result.LatestRelease!.TagName.Should().Be("v2.0.0-beta.1");
+    }
 }

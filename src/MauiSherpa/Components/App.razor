@@ -31,11 +31,14 @@
         await base.OnInitializedAsync();
         
         // Check for updates after a short delay to not block app startup
-        _ = Task.Run(async () =>
-        {
-            await Task.Delay(2000); // Wait 2 seconds after app starts
-            await CheckForUpdatesAsync();
-        });
+        // Run on background thread to avoid blocking UI
+        _ = CheckForUpdatesWithDelayAsync();
+    }
+
+    private async Task CheckForUpdatesWithDelayAsync()
+    {
+        await Task.Delay(2000); // Wait 2 seconds after app starts
+        await CheckForUpdatesAsync();
     }
 
     private async Task CheckForUpdatesAsync()
