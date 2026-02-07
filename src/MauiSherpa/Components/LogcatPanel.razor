@@ -73,6 +73,10 @@
                             @onclick="@(() => PanelService.SetTab(InspectorTab.Capture))">
                         <i class="fas fa-camera"></i> Capture
                     </button>
+                    <button class="inspector-tab @(PanelService.ActiveTab == InspectorTab.Tools ? "active" : "")"
+                            @onclick="@(() => PanelService.SetTab(InspectorTab.Tools))">
+                        <i class="fas fa-wrench"></i> Tools
+                    </button>
                 </div>
                 <div class="inspector-device-selector">
                     <i class="fab fa-android inspector-device-icon"></i>
@@ -99,6 +103,9 @@
                         break;
                     case InspectorTab.Capture:
                         <ScreenCaptureTab Serial="@(PanelService.ActiveSerial!)" />
+                        break;
+                    case InspectorTab.Tools:
+                        <DeviceToolsTab Serial="@(PanelService.ActiveSerial!)" />
                         break;
                 }
             </div>

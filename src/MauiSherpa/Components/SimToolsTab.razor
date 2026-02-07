@@ -1,8 +1,10 @@
 @using MauiSherpa.Core.Interfaces
+@using MauiSherpa.Core.Services
 @using MauiSherpa.Services
 @inject ISimulatorService SimulatorService
 @inject SimInspectorService Inspector
 @inject IAlertService AlertService
+@inject IDialogService DialogService
 @implements IDisposable
 
 <div class="sim-tools-tab">
@@ -61,6 +63,45 @@
                     <i class="fas fa-times"></i> Clear
                 </button>
             </div>
+
+            <!-- KML/GPX Route Playback -->
+            <div class="tool-divider"></div>
+            <div class="tool-row">
+                <label>Route Playback (KML/GPX)</label>
+                <div class="tool-route-row">
+                    <button class="btn btn-sm btn-secondary" @onclick="PickRouteFile" disabled="@SimulatorService.IsPlayingRoute">
+                        <i class="fas fa-file-upload"></i> Load File
+                    </button>
+                    @if (routeFileName != null)
+                    {
+                        <span class="route-file-name" title="@routeFileName">@routeFileName (@routeWaypoints?.Count pts)</span>
+                    }
+                </div>
+            </div>
+            @if (routeWaypoints?.Count > 0)
+            {
+                <div class="tool-row-inline">
+                    <div class="tool-field">
+                        <label>Speed (m/s)</label>
+                        <input type="number" min="1" max="500" class="tool-input" @bind="routeSpeed" />
+                    </div>
+                    <div class="tool-field route-actions">
+                        <label>&nbsp;</label>
+                        @if (SimulatorService.IsPlayingRoute)
+                        {
+                            <button class="btn btn-sm btn-danger" @onclick="StopRoute">
+                                <i class="fas fa-stop"></i> Stop
+                            </button>
+                        }
+                        else
+                        {
+                            <button class="btn btn-sm btn-success" @onclick="PlayRoute">
+                                <i class="fas fa-play"></i> Play
+                            </button>
+                        }
+                    </div>
+                </div>
+            }
         </div>
     </div>
 
@@ -154,6 +195,8 @@
     .sim-tools-tab .btn-sm { padding: 4px 8px; font-size: 11px; }
     .sim-tools-tab .btn-primary { background: var(--accent-primary); color: white; }
     .sim-tools-tab .btn-secondary { background: var(--bg-tertiary); color: var(--text-secondary); border: 1px solid var(--border-color); }
+    .sim-tools-tab .btn-success { background: #22c55e; color: white; }
+    .sim-tools-tab .btn-danger { background: #ef4444; color: white; }
     .sim-tools-tab .btn-ghost { background: transparent; color: var(--accent-primary); border: 1px solid var(--border-color); font-size: 10px; padding: 2px 6px; }
     .sim-tools-tab .btn-ghost:hover { background: var(--bg-tertiary); }
     .sim-tools-tab .btn:hover:not(:disabled) { filter: brightness(1.1); }
@@ -201,6 +244,10 @@
 
     .tool-actions { display: flex; gap: 4px; margin-top: 2px; }
     .tool-presets { display: flex; flex-wrap: wrap; gap: 4px; }
+    .tool-divider { border-top: 1px solid var(--border-color); margin: 4px 0; }
+    .tool-route-row { display: flex; align-items: center; gap: 8px; }
+    .route-file-name { font-size: 11px; color: var(--text-secondary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 180px; }
+    .route-actions { display: flex; align-items: flex-end; }
 </style>
 
 @code {
@@ -216,6 +263,11 @@
     private double locationLon = -122.0090;
     private bool isSettingLocation;
 
+    // Route
+    private string? routeFileName;
+    private IReadOnlyList<RouteWaypoint>? routeWaypoints;
+    private double routeSpeed = 20;
+
     // Status bar
     private string statusTime = "";
     private string statusNetwork = "";
@@ -230,6 +282,7 @@
     protected override void OnInitialized()
     {
         Inspector.DeviceChanged += OnDeviceChanged;
+        SimulatorService.RoutePlaybackStateChanged += OnRouteStateChanged;
     }
 
     private void OnDeviceChanged(string udid)
@@ -299,6 +352,34 @@
         }
     }
 
+    private async Task PickRouteFile()
+    {
+        var path = await DialogService.PickOpenFileAsync("Select KML or GPX file", new[] { ".kml", ".gpx" });
+        if (string.IsNullOrEmpty(path)) return;
+        try
+        {
+            routeWaypoints = KmlRouteParser.ParseFile(path);
+            routeFileName = Path.GetFileName(path);
+            await AlertService.ShowToastAsync($"Loaded {routeWaypoints.Count} waypoints from {routeFileName}");
+        }
+        catch (Exception ex)
+        {
+            await AlertService.ShowToastAsync($"Failed to parse file: {ex.Message}");
+        }
+        StateHasChanged();
+    }
+
+    private async Task PlayRoute()
+    {
+        if (string.IsNullOrWhiteSpace(Udid) || routeWaypoints == null) return;
+        var ok = await SimulatorService.StartRoutePlaybackAsync(Udid, routeWaypoints, routeSpeed);
+        if (!ok) await AlertService.ShowToastAsync("Failed to start route playback");
+    }
+
+    private void StopRoute() => SimulatorService.StopRoutePlayback();
+
+    private void OnRouteStateChanged() => InvokeAsync(StateHasChanged);
+
     private async Task ApplyStatusBar()
     {
         if (string.IsNullOrWhiteSpace(Udid)) return;
@@ -344,5 +425,6 @@
     public void Dispose()
     {
         Inspector.DeviceChanged -= OnDeviceChanged;
+        SimulatorService.RoutePlaybackStateChanged -= OnRouteStateChanged;
     }
 }
