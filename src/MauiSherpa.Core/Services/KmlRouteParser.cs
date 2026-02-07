@@ -1,5 +1,8 @@
 using System.Globalization;
 using System.Xml.Linq;
+using SharpKml.Base;
+using SharpKml.Dom;
+using SharpKml.Dom.GX;
 
 namespace MauiSherpa.Core.Services;
 
@@ -9,71 +12,71 @@ namespace MauiSherpa.Core.Services;
 public record RouteWaypoint(double Latitude, double Longitude, double? Altitude = null, string? Name = null);
 
 /// <summary>
-/// Parses KML and GPX files into a sequence of waypoints
+/// Parses KML and GPX files into a sequence of waypoints.
+/// Uses SharpKml.Core for robust KML parsing, manual XML for GPX.
 /// </summary>
 public static class KmlRouteParser
 {
-    private static readonly XNamespace KmlNs = "http://www.opengis.net/kml/2.2";
-    private static readonly XNamespace GpxNs = "http://www.topografix.com/GPX/1/1";
-    private static readonly XNamespace Gpx10Ns = "http://www.topografix.com/GPX/1/0";
-
     public static IReadOnlyList<RouteWaypoint> ParseFile(string filePath)
     {
         var ext = Path.GetExtension(filePath).ToLowerInvariant();
-        var xml = XDocument.Load(filePath);
-
         return ext switch
         {
-            ".kml" => ParseKml(xml),
-            ".gpx" => ParseGpx(xml),
+            ".kml" => ParseKml(filePath),
+            ".gpx" => ParseGpx(XDocument.Load(filePath)),
             _ => throw new NotSupportedException($"Unsupported file type: {ext}. Use .kml or .gpx")
         };
     }
 
-    public static IReadOnlyList<RouteWaypoint> ParseKml(XDocument doc)
+    public static IReadOnlyList<RouteWaypoint> ParseKml(string filePath)
     {
+        var parser = new Parser();
+        using var stream = File.OpenRead(filePath);
+        parser.Parse(stream);
+
+        var root = parser.Root;
+        if (root == null) return [];
+
         var waypoints = new List<RouteWaypoint>();
-        var root = doc.Root;
-        if (root == null) return waypoints;
-
-        // Detect namespace (some KML files omit it)
-        var ns = root.Name.Namespace;
-
-        // Extract from <coordinates> elements (inside Placemark/Point, LineString, LinearRing)
-        foreach (var coords in root.Descendants(ns + "coordinates"))
-        {
-            var text = coords.Value.Trim();
-            foreach (var tuple in text.Split(new[] { ' ', '\n', '\r', '\t' }, StringSplitOptions.RemoveEmptyEntries))
-            {
-                var parts = tuple.Split(',');
-                if (parts.Length >= 2
-                    && double.TryParse(parts[0], NumberStyles.Float, CultureInfo.InvariantCulture, out var lon)
-                    && double.TryParse(parts[1], NumberStyles.Float, CultureInfo.InvariantCulture, out var lat))
-                {
-                    double? alt = parts.Length >= 3
-                        && double.TryParse(parts[2], NumberStyles.Float, CultureInfo.InvariantCulture, out var a) ? a : null;
-                    waypoints.Add(new RouteWaypoint(lat, lon, alt));
-                }
-            }
-        }
-
-        // Also look for <gx:coord> elements (Google Earth extensions)
-        var gxNs = XNamespace.Get("http://www.google.com/kml/ext/2.2");
-        foreach (var coord in root.Descendants(gxNs + "coord"))
-        {
-            var parts = coord.Value.Trim().Split(' ');
-            if (parts.Length >= 2
-                && double.TryParse(parts[0], NumberStyles.Float, CultureInfo.InvariantCulture, out var lon)
-                && double.TryParse(parts[1], NumberStyles.Float, CultureInfo.InvariantCulture, out var lat))
-            {
-                double? alt = parts.Length >= 3
-                    && double.TryParse(parts[2], NumberStyles.Float, CultureInfo.InvariantCulture, out var a) ? a : null;
-                waypoints.Add(new RouteWaypoint(lat, lon, alt));
-            }
-        }
-
+        ExtractFromElement(root, waypoints);
         return waypoints;
     }
+
+    private static void ExtractFromElement(Element element, List<RouteWaypoint> waypoints)
+    {
+        switch (element)
+        {
+            case Point point when point.Coordinate != null:
+                waypoints.Add(ToWaypoint(point.Coordinate));
+                break;
+
+            case LineString line when line.Coordinates != null:
+                foreach (var v in line.Coordinates)
+                    waypoints.Add(ToWaypoint(v));
+                break;
+
+            case LinearRing ring when ring.Coordinates != null:
+                foreach (var v in ring.Coordinates)
+                    waypoints.Add(ToWaypoint(v));
+                break;
+
+            case Track track:
+                foreach (var v in track.Coordinates)
+                    waypoints.Add(ToWaypoint(v));
+                break;
+
+            case MultipleTrack multiTrack:
+                foreach (var child in multiTrack.Tracks)
+                    ExtractFromElement(child, waypoints);
+                break;
+        }
+
+        foreach (var child in element.Children)
+            ExtractFromElement(child, waypoints);
+    }
+
+    private static RouteWaypoint ToWaypoint(Vector v) =>
+        new(v.Latitude, v.Longitude, v.Altitude);
 
     public static IReadOnlyList<RouteWaypoint> ParseGpx(XDocument doc)
     {
