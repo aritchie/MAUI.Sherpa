@@ -80,7 +80,8 @@ public static class MauiProgram
         builder.Services.AddSingleton<ILocalCertificateService, LocalCertificateService>();
         builder.Services.AddSingleton<ISimulatorService, MauiSherpa.Core.Services.SimulatorService>();
         builder.Services.AddSingleton<ISimulatorLogService, SimulatorLogService>();
-        builder.Services.AddSingleton<SimLogPanelService>();
+        builder.Services.AddSingleton<SimInspectorService>();
+        builder.Services.AddSingleton<InspectorCoordinator>();
         
         // Cloud Secrets Storage services
         builder.Services.AddSingleton<ICloudSecretsProviderFactory, CloudSecretsProviderFactory>();

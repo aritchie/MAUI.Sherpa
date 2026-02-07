@@ -1,5 +1,9 @@
 @using MauiSherpa.Services
-@inject SimLogPanelService PanelService
+@using MauiSherpa.Core.Interfaces
+@inject SimInspectorService PanelService
+@inject DeviceInspectorService AndroidInspector
+@inject InspectorCoordinator Coordinator
+@inject ISimulatorService SimulatorService
 @inject IJSRuntime JS
 @implements IDisposable
 
@@ -7,17 +11,19 @@
 {
     @if (PanelService.IsMinimized)
     {
-        <div class="simlog-collapsed" @onclick="PanelService.Restore">
+        var slot = Coordinator.GetCollapsedSlot("apple", AndroidInspector.IsOpen && AndroidInspector.IsMinimized, true);
+        <div class="simlog-collapsed" style="bottom:@(slot * 34)px" @onclick="OnRestore">
             <i class="fab fa-apple collapsed-icon"></i>
-            <span class="collapsed-label">iOS Logs</span>
-            <span class="collapsed-serial">@PanelService.ActiveSimName</span>
+            <span class="collapsed-label">@(PanelService.ActiveSimName ?? "Simulator")</span>
+            <span class="collapsed-serial">@PanelService.ActiveUdid</span>
             <i class="fas fa-chevron-up collapsed-expand"></i>
         </div>
     }
     else
     {
         <div class="simlog-dialog @(isMaximized ? "maximized" : "")" @ref="dialogRef"
-             style="left:@(posX)px;top:@(posY)px;width:@(width)px;height:@(height)px;">
+             style="left:@(posX)px;top:@(posY)px;width:@(width)px;height:@(height)px;z-index:@(Coordinator.GetZIndex("apple"))"
+             @onpointerdown="OnFocus">
             @if (!isMaximized)
             {
                 <!-- Resize handles -->
@@ -34,7 +40,7 @@
             <div class="dialog-titlebar" @onpointerdown="StartDrag">
                 <div class="dialog-title">
                     <i class="fab fa-apple title-apple-icon"></i>
-                    <span class="title-text">iOS Logs</span>
+                    <span class="title-text">Simulator Inspector</span>
                 </div>
                 <div class="dialog-actions" @onpointerdown:stopPropagation="true">
                     <button class="dialog-btn" @onclick="PanelService.Minimize" @onclick:stopPropagation="true" title="Minimize">
@@ -48,8 +54,46 @@
                     </button>
                 </div>
             </div>
+
+            <div class="sim-inspector-tabstrip">
+                <div class="sim-inspector-tabs">
+                    <button class="sim-inspector-tab @(PanelService.ActiveTab == SimInspectorTab.Logs ? "active" : "")"
+                            @onclick="@(() => PanelService.SetTab(SimInspectorTab.Logs))">
+                        <i class="fas fa-scroll"></i> Logs
+                    </button>
+                    <button class="sim-inspector-tab @(PanelService.ActiveTab == SimInspectorTab.Apps ? "active" : "")"
+                            @onclick="@(() => PanelService.SetTab(SimInspectorTab.Apps))">
+                        <i class="fas fa-th-large"></i> Apps
+                    </button>
+                    <button class="sim-inspector-tab @(PanelService.ActiveTab == SimInspectorTab.Capture ? "active" : "")"
+                            @onclick="@(() => PanelService.SetTab(SimInspectorTab.Capture))">
+                        <i class="fas fa-camera"></i> Capture
+                    </button>
+                </div>
+                <div class="sim-inspector-device-selector">
+                    <i class="fab fa-apple sim-inspector-device-icon"></i>
+                    <select class="sim-inspector-device-select" @ref="deviceSelectRef" value="@PanelService.ActiveUdid" @onchange="OnDeviceChanged">
+                        @foreach (var s in bootedSimulators)
+                        {
+                            <option value="@s.Udid" selected="@(s.Udid == PanelService.ActiveUdid)">@s.Name</option>
+                        }
+                    </select>
+                </div>
+            </div>
+
             <div class="dialog-body">
-                <SimLogContent Udid="@(PanelService.ActiveUdid!)" />
+                @switch (PanelService.ActiveTab)
+                {
+                    case SimInspectorTab.Logs:
+                        <SimLogContent Udid="@(PanelService.ActiveUdid!)" />
+                        break;
+                    case SimInspectorTab.Apps:
+                        <SimAppsTab Udid="@(PanelService.ActiveUdid!)" />
+                        break;
+                    case SimInspectorTab.Capture:
+                        <SimCaptureTab Udid="@(PanelService.ActiveUdid!)" />
+                        break;
+                }
             </div>
         </div>
     }
@@ -66,7 +110,7 @@
         border-radius: 10px;
         display: flex;
         flex-direction: column;
-        z-index: 10002;
+        /* z-index set via inline style for focus ordering */
         box-shadow: 0 8px 32px rgba(0,0,0,0.18), 0 2px 8px rgba(0,0,0,0.08);
         animation: simlogDialogIn 0.2s ease-out;
     }
@@ -146,6 +190,97 @@
         color: white;
     }
 
+    /* ── Tab strip ── */
+    .sim-inspector-tabstrip {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0 8px;
+        background: var(--bg-tertiary, #edf2f7);
+        border-bottom: 1px solid var(--border-color, #e2e8f0);
+        flex-shrink: 0;
+        gap: 8px;
+    }
+    .sim-inspector-tabs {
+        display: flex;
+        gap: 0;
+        position: relative;
+        z-index: 1;
+    }
+    .sim-inspector-tab {
+        background: none;
+        border: none;
+        padding: 6px 12px;
+        font-size: 12px;
+        font-weight: 500;
+        color: var(--text-secondary);
+        cursor: pointer;
+        border-bottom: 2px solid transparent;
+        transition: all 0.15s;
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        white-space: nowrap;
+    }
+    .sim-inspector-tab:hover {
+        color: var(--text-primary);
+        background: var(--bg-secondary);
+    }
+    .sim-inspector-tab.active {
+        color: var(--accent-primary, #4299e1);
+        border-bottom-color: var(--accent-primary, #4299e1);
+        font-weight: 600;
+    }
+    .sim-inspector-tab i {
+        font-size: 11px;
+    }
+
+    /* ── Panel-level device selector ── */
+    .sim-inspector-device-selector {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        padding: 3px 8px;
+        border-radius: 6px;
+        border: 1px solid var(--border-color, #e2e8f0);
+        background: var(--bg-secondary, #fff);
+        cursor: pointer;
+        transition: border-color 0.15s, box-shadow 0.15s;
+        position: relative;
+        overflow: hidden;
+        flex-shrink: 0;
+    }
+    .sim-inspector-device-selector:hover {
+        border-color: var(--accent-primary, #4299e1);
+    }
+    .sim-inspector-device-selector:focus-within {
+        border-color: var(--accent-primary, #4299e1);
+        box-shadow: 0 0 0 2px rgba(66, 153, 225, 0.3);
+    }
+    .sim-inspector-device-icon {
+        color: var(--text-secondary);
+        font-size: 12px;
+        flex-shrink: 0;
+    }
+    .sim-inspector-device-select {
+        border: none;
+        outline: none !important;
+        -webkit-focus-ring-color: transparent;
+        background: transparent;
+        font-size: 12px;
+        font-family: 'Consolas', 'Monaco', monospace;
+        color: var(--text-primary);
+        cursor: pointer;
+        -webkit-appearance: none;
+        appearance: none;
+        padding-right: 2px;
+        max-width: 180px;
+    }
+    .sim-inspector-device-select:focus {
+        outline: none !important;
+        box-shadow: none !important;
+    }
+
     /* ── Body ── */
     .simlog-dialog .dialog-body {
         flex: 1;
@@ -185,9 +320,10 @@
     /* ── Collapsed bar ── */
     .simlog-collapsed {
         position: fixed;
-        bottom: 0;
+        /* bottom set via inline style for stacking */
         left: 250px; /* sidebar width */
         right: 0;
+        height: 34px;
         display: flex;
         align-items: center;
         gap: 10px;
@@ -195,9 +331,9 @@
         border-top: 1px solid var(--border-color, #e2e8f0);
         padding: 6px 16px;
         cursor: pointer;
-        z-index: 10002;
+        z-index: 10100;
         user-select: none;
-        transition: background 0.15s;
+        transition: background 0.15s, bottom 0.15s;
     }
     .simlog-collapsed:hover {
         background: var(--bg-secondary, #ffffff);
@@ -230,6 +366,8 @@
 
 @code {
     private ElementReference dialogRef;
+    private ElementReference deviceSelectRef;
+    private List<SimulatorDevice> bootedSimulators = new();
 
     // Position & size
     private double posX = 280;
@@ -263,6 +401,8 @@
     protected override void OnInitialized()
     {
         PanelService.StateChanged += OnStateChanged;
+        Coordinator.StateChanged += OnCoordinatorChanged;
+        _ = RefreshBootedSimulators();
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -436,17 +576,63 @@
                 height = 800;
             }
             isMaximized = true;
+            Coordinator.BringToFront("apple");
+
+            // Collapse the other inspector if it's open and not minimized
+            if (AndroidInspector.IsOpen && !AndroidInspector.IsMinimized)
+                AndroidInspector.Minimize();
         }
     }
 
     private void OnStateChanged()
     {
+        _ = InvokeAsync(async () =>
+        {
+            await RefreshBootedSimulators();
+            StateHasChanged();
+        });
+    }
+
+    private void OnCoordinatorChanged()
+    {
         InvokeAsync(StateHasChanged);
+    }
+
+    private void OnFocus()
+    {
+        Coordinator.BringToFront("apple");
+    }
+
+    private void OnRestore()
+    {
+        Coordinator.BringToFront("apple");
+        // If the other inspector is maximized, collapse it
+        if (AndroidInspector.IsOpen && !AndroidInspector.IsMinimized)
+            AndroidInspector.Minimize();
+        PanelService.Restore();
+    }
+
+    private async Task RefreshBootedSimulators()
+    {
+        try
+        {
+            var allSims = await SimulatorService.GetSimulatorsAsync();
+            bootedSimulators = allSims.Where(s => s.State == "Booted").ToList();
+        }
+        catch { /* ignore */ }
+    }
+
+    private void OnDeviceChanged(ChangeEventArgs e)
+    {
+        var newUdid = e.Value?.ToString();
+        if (string.IsNullOrEmpty(newUdid) || newUdid == PanelService.ActiveUdid) return;
+        PanelService.SwitchDevice(newUdid, bootedSimulators.FirstOrDefault(s => s.Udid == newUdid)?.Name);
     }
 
     public void Dispose()
     {
         PanelService.StateChanged -= OnStateChanged;
+        Coordinator.StateChanged -= OnCoordinatorChanged;
         selfRef?.Dispose();
     }
 }

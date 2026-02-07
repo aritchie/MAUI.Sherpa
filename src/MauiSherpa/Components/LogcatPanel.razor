@@ -2,6 +2,8 @@
 @using MauiSherpa.Core.Interfaces
 @inject DeviceInspectorService PanelService
 @inject IAdbDeviceWatcherService DeviceWatcher
+@inject SimInspectorService AppleInspector
+@inject InspectorCoordinator Coordinator
 @inject IJSRuntime JS
 @implements IDisposable
 
@@ -9,7 +11,8 @@
 {
     @if (PanelService.IsMinimized)
     {
-        <div class="logcat-collapsed" @onclick="PanelService.Restore">
+        var slot = Coordinator.GetCollapsedSlot("android", true, AppleInspector.IsOpen && AppleInspector.IsMinimized);
+        <div class="logcat-collapsed" style="bottom:@(slot * 34)px" @onclick="OnRestore">
             <i class="fab fa-android collapsed-icon"></i>
             <span class="collapsed-label">@(PanelService.ActiveDeviceName ?? "Device")</span>
             <span class="collapsed-serial">@PanelService.ActiveSerial</span>
@@ -19,7 +22,8 @@
     else
     {
         <div class="logcat-dialog @(isMaximized ? "maximized" : "")" @ref="dialogRef"
-             style="left:@(posX)px;top:@(posY)px;width:@(width)px;height:@(height)px;">
+             style="left:@(posX)px;top:@(posY)px;width:@(width)px;height:@(height)px;z-index:@(Coordinator.GetZIndex("android"))"
+             @onpointerdown="OnFocus">
             @if (!isMaximized)
             {
                 <!-- Resize handles -->
@@ -113,7 +117,7 @@
         border-radius: 10px;
         display: flex;
         flex-direction: column;
-        z-index: 10002;
+        /* z-index set via inline style for focus ordering */
         box-shadow: 0 8px 32px rgba(0,0,0,0.18), 0 2px 8px rgba(0,0,0,0.08);
         animation: dialogIn 0.2s ease-out;
     }
@@ -332,9 +336,10 @@
     /* ── Collapsed bar ── */
     .logcat-collapsed {
         position: fixed;
-        bottom: 0;
+        /* bottom set via inline style for stacking */
         left: 250px; /* sidebar width */
         right: 0;
+        height: 34px;
         display: flex;
         align-items: center;
         gap: 10px;
@@ -342,9 +347,9 @@
         border-top: 1px solid var(--border-color, #e2e8f0);
         padding: 6px 16px;
         cursor: pointer;
-        z-index: 10002;
+        z-index: 10100;
         user-select: none;
-        transition: background 0.15s;
+        transition: background 0.15s, bottom 0.15s;
     }
     .logcat-collapsed:hover {
         background: var(--bg-secondary, #ffffff);
@@ -413,6 +418,7 @@
     {
         PanelService.StateChanged += OnStateChanged;
         DeviceWatcher.DevicesChanged += OnWatcherDevicesChanged;
+        Coordinator.StateChanged += OnCoordinatorChanged;
         connectedDevices = DeviceWatcher.Devices.ToList();
     }
 
@@ -589,12 +595,36 @@
                 height = 800;
             }
             isMaximized = true;
+            Coordinator.BringToFront("android");
+
+            // Collapse the other inspector if it's open and not minimized
+            if (AppleInspector.IsOpen && !AppleInspector.IsMinimized)
+                AppleInspector.Minimize();
         }
     }
 
     private void OnStateChanged()
     {
         InvokeAsync(StateHasChanged);
+    }
+
+    private void OnCoordinatorChanged()
+    {
+        InvokeAsync(StateHasChanged);
+    }
+
+    private void OnFocus()
+    {
+        Coordinator.BringToFront("android");
+    }
+
+    private void OnRestore()
+    {
+        Coordinator.BringToFront("android");
+        // If the other inspector is maximized, collapse it and un-maximize
+        if (AppleInspector.IsOpen && !AppleInspector.IsMinimized)
+            AppleInspector.Minimize();
+        PanelService.Restore();
     }
 
     private void OnWatcherDevicesChanged(IReadOnlyList<DeviceInfo> newDevices)
@@ -622,6 +652,7 @@
     {
         PanelService.StateChanged -= OnStateChanged;
         DeviceWatcher.DevicesChanged -= OnWatcherDevicesChanged;
+        Coordinator.StateChanged -= OnCoordinatorChanged;
         selfRef?.Dispose();
     }
 }

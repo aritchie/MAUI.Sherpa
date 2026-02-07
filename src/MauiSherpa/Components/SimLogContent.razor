@@ -2,8 +2,7 @@
 @using MauiSherpa.Core.Services
 @using MauiSherpa.Services
 @inject ISimulatorLogService LogService
-@inject ISimulatorService SimulatorService
-@inject SimLogPanelService PanelService
+@inject SimInspectorService PanelService
 @inject IAlertService AlertService
 @inject ILoggingService Logger
 @inject IJSRuntime JS
@@ -12,15 +11,6 @@
 <div class="simlog-page">
     <div class="simlog-toolbar">
         <div class="toolbar-left">
-            <div class="device-selector" @onclick="FocusDeviceSelect">
-                <i class="fab fa-apple device-selector-icon"></i>
-                <select class="device-select" @ref="deviceSelectRef" value="@Udid" @onchange="OnDeviceChanged">
-                    @foreach (var s in bootedSimulators)
-                    {
-                        <option value="@s.Udid" selected="@(s.Udid == Udid)">@s.Name</option>
-                    }
-                </select>
-            </div>
             @if (LogService.IsRunning)
             {
                 <button class="btn btn-sm btn-danger" @onclick="StopLog">
@@ -141,49 +131,6 @@
         display: flex;
         align-items: center;
         gap: 6px;
-    }
-
-    .simlog-toolbar .device-selector {
-        display: flex;
-        align-items: center;
-        gap: 6px;
-        background: var(--bg-tertiary);
-        padding: 2px 8px 2px 10px;
-        border-radius: 20px;
-        border: 1px solid var(--border-color);
-        cursor: pointer;
-        transition: border-color 0.15s;
-    }
-    .simlog-toolbar .device-selector:focus-within {
-        border-color: var(--accent-primary, #4299e1);
-    }
-    .simlog-toolbar .device-selector-icon {
-        color: #a2aaad;
-        font-size: 13px;
-        flex-shrink: 0;
-        pointer-events: none;
-    }
-    .simlog-toolbar .device-select {
-        background: transparent;
-        border: none;
-        color: var(--text-primary);
-        font-size: 12px;
-        font-weight: 600;
-        font-family: 'Consolas', 'Monaco', monospace;
-        cursor: pointer;
-        outline: none;
-        padding: 2px 0;
-        max-width: 220px;
-        -webkit-appearance: none;
-        appearance: none;
-    }
-    .simlog-toolbar .device-select:focus {
-        outline: none;
-        box-shadow: none;
-    }
-    .simlog-toolbar .device-select option {
-        background: var(--bg-secondary);
-        color: var(--text-primary);
     }
 
     .simlog-toolbar .streaming-dot {
@@ -363,8 +310,6 @@
     [Parameter] public string Udid { get; set; } = "";
 
     private ElementReference gridBody;
-    private ElementReference deviceSelectRef;
-    private List<SimulatorDevice> bootedSimulators = new();
 
     private List<SimulatorLogEntry> filteredEntries = new();
     private int filteredCount;
@@ -408,9 +353,6 @@
     {
         LogService.OnCleared += OnLogCleared;
         PanelService.DeviceChanged += OnDeviceSwitched;
-        await RefreshBootedSimulators();
-        if (bootedSimulators.Count == 0 && !string.IsNullOrEmpty(Udid))
-            bootedSimulators = new() { new SimulatorDevice(Udid, Udid, "Booted", true, "", "", null, null, null) };
         await StartLog();
     }
 
@@ -436,19 +378,6 @@
                 };
             ");
             await UpdateViewportHeight();
-        }
-    }
-
-    private async Task RefreshBootedSimulators()
-    {
-        try
-        {
-            var allSims = await SimulatorService.GetSimulatorsAsync();
-            bootedSimulators = allSims.Where(s => s.State == "Booted").ToList();
-        }
-        catch (Exception ex)
-        {
-            Logger.LogError($"Failed to get simulators: {ex.Message}", ex);
         }
     }
 
@@ -747,18 +676,6 @@
     }
 
     // Simulator selector
-    private async Task FocusDeviceSelect()
-    {
-        await JS.InvokeVoidAsync("eval", "(function(){ var el = document.querySelector('.simlog-toolbar .device-select'); if(el){ el.blur(); el.focus(); el.click(); } })()");
-    }
-
-    private async Task OnDeviceChanged(ChangeEventArgs e)
-    {
-        var newUdid = e.Value?.ToString();
-        if (string.IsNullOrEmpty(newUdid) || newUdid == Udid) return;
-        PanelService.SwitchDevice(newUdid, bootedSimulators.FirstOrDefault(s => s.Udid == newUdid)?.Name);
-    }
-
     private void OnDeviceSwitched(string newUdid)
     {
         _ = InvokeAsync(async () =>
@@ -779,8 +696,7 @@
             RecalcVisibleRange();
             StateHasChanged();
 
-            // Refresh simulator list and start new stream
-            await RefreshBootedSimulators();
+            // Start new stream
             await StartLog();
         });
     }
