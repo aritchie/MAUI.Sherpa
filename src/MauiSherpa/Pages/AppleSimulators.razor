@@ -10,7 +10,7 @@
 @inject IFileSystemService FileSystem
 @inject OperationModalService OperationModal
 @inject BlazorToastService ToastService
-@inject SimLogPanelService SimLogPanel
+@inject SimInspectorService SimInspector
 
 <h1><i class="fas fa-tablet-screen-button"></i> iOS Simulators</h1>
 
@@ -142,43 +142,48 @@
                 <div class="simulator-actions">
                     @if (isBooting)
                     {
-                        <button class="btn btn-secondary btn-sm" disabled>
-                            <i class="fas fa-spinner fa-spin"></i> Booting...
+                        <button class="btn btn-secondary btn-icon" disabled>
+                            <i class="fas fa-spinner fa-spin"></i>
                         </button>
                     }
                     else if (isBooted)
                     {
-                        <button class="btn btn-info btn-sm" @onclick="@(() => SimLogPanel.Open(sim.Udid, sim.Name))" title="Stream logs">
-                            <i class="fas fa-scroll"></i> Logs
+                        <button class="btn btn-info btn-icon" @onclick="@(() => SimInspector.Open(sim.Udid, sim.Name))" title="Logs">
+                            <i class="fas fa-scroll"></i>
                         </button>
-                        <button class="btn btn-secondary btn-sm" @onclick="@(() => ShowApps(sim))" title="Manage installed apps">
-                            <i class="fas fa-th-large"></i> Apps
+                        <button class="btn btn-secondary btn-icon" @onclick="@(() => SimInspector.Open(sim.Udid, sim.Name, SimInspectorTab.Apps))" title="Inspect">
+                            <i class="fas fa-search"></i>
                         </button>
-                        <button class="btn btn-secondary btn-sm" @onclick="@(() => TakeScreenshot(sim))" title="Take screenshot">
-                            <i class="fas fa-camera"></i>
-                        </button>
-                        <button class="btn btn-secondary btn-sm" @onclick="@(() => RevealDataFolder(sim))" title="Reveal data folder in Finder">
-                            <i class="fas fa-folder-open"></i>
-                        </button>
-                        <button class="btn btn-warning btn-sm" @onclick="@(() => ShutdownSimulator(sim))" disabled="@isLoading">
-                            <i class="fas fa-stop"></i> Shutdown
+                        <button class="btn btn-warning btn-icon" @onclick="@(() => ShutdownSimulator(sim))" disabled="@isLoading" title="Shutdown">
+                            <i class="fas fa-stop"></i>
                         </button>
                     }
                     else
                     {
-                        <button class="btn btn-success btn-sm" @onclick="@(() => BootSimulator(sim))" disabled="@isLoading">
-                            <i class="fas fa-play"></i> Boot
+                        <button class="btn btn-success btn-icon" @onclick="@(() => BootSimulator(sim))" disabled="@isLoading" title="Boot">
+                            <i class="fas fa-play"></i>
                         </button>
                     }
-                    <button class="btn btn-secondary btn-sm" @onclick="@(() => CloneSimulator(sim))" disabled="@(isLoading || isBooting)" title="Clone simulator">
-                        <i class="fas fa-clone"></i>
-                    </button>
-                    <button class="btn btn-secondary btn-sm" @onclick="@(() => EraseSimulator(sim))" disabled="@(isLoading || isBooted || isBooting)" title="Erase all content and settings">
-                        <i class="fas fa-rotate-left"></i> Reset
-                    </button>
-                    <button class="btn btn-danger btn-sm" @onclick="@(() => DeleteSimulator(sim))" disabled="@(isLoading || isBooted || isBooting)">
-                        <i class="fas fa-trash"></i> Delete
-                    </button>
+                    <div class="sim-dropdown">
+                        <button class="btn btn-secondary btn-icon sim-dropdown-toggle" @onclick="@(() => ToggleDropdown(sim.Udid))" @onclick:stopPropagation="true" title="More actions">
+                            <i class="fas fa-ellipsis-v"></i>
+                        </button>
+                        @if (openDropdownId == sim.Udid)
+                        {
+                            <div class="sim-dropdown-menu">
+                                <button class="sim-dropdown-item" @onclick="@(() => { CloseDropdown(); CloneSimulator(sim); })" disabled="@(isLoading || isBooting)">
+                                    <i class="fas fa-clone"></i> Clone
+                                </button>
+                                <button class="sim-dropdown-item" @onclick="@(() => { CloseDropdown(); EraseSimulator(sim); })" disabled="@(isLoading || isBooted || isBooting)">
+                                    <i class="fas fa-rotate-left"></i> Reset
+                                </button>
+                                <div class="sim-dropdown-divider"></div>
+                                <button class="sim-dropdown-item danger" @onclick="@(() => { CloseDropdown(); DeleteSimulator(sim); })" disabled="@(isLoading || isBooted || isBooting)">
+                                    <i class="fas fa-trash"></i> Delete
+                                </button>
+                            </div>
+                        }
+                    </div>
                 </div>
             </div>
         }
@@ -241,8 +246,6 @@
         </div>
     </div>
 }
-
-<MauiSherpa.Components.SimulatorApps @ref="simulatorAppsRef" />
 
 <style>
     h1 {
@@ -418,8 +421,70 @@
 
     .simulator-actions {
         display: flex;
-        gap: 8px;
+        gap: 4px;
         align-items: center;
+    }
+
+    .btn-icon {
+        width: 32px;
+        height: 32px;
+        padding: 0;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 6px;
+        font-size: 13px;
+    }
+    .btn-icon i { font-size: 13px; margin: 0; }
+
+    /* ── Dropdown ── */
+    .sim-dropdown {
+        position: relative;
+    }
+    .sim-dropdown-toggle {
+        color: var(--text-secondary);
+    }
+    .sim-dropdown-menu {
+        position: absolute;
+        right: 0;
+        top: 100%;
+        margin-top: 4px;
+        min-width: 140px;
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+        box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+        z-index: 100;
+        padding: 4px 0;
+        animation: dropdownIn 0.12s ease-out;
+    }
+    @@keyframes dropdownIn {
+        from { opacity: 0; transform: translateY(-4px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    .sim-dropdown-item {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        width: 100%;
+        padding: 7px 14px;
+        border: none;
+        background: none;
+        color: var(--text-primary);
+        font-size: 13px;
+        cursor: pointer;
+        text-align: left;
+        transition: background 0.1s;
+    }
+    .sim-dropdown-item:hover:not(:disabled) { background: var(--bg-tertiary); }
+    .sim-dropdown-item:disabled { opacity: 0.4; cursor: not-allowed; }
+    .sim-dropdown-item i { font-size: 12px; width: 14px; text-align: center; color: var(--text-secondary); }
+    .sim-dropdown-item.danger { color: var(--accent-danger, #e53e3e); }
+    .sim-dropdown-item.danger i { color: var(--accent-danger, #e53e3e); }
+    .sim-dropdown-divider {
+        height: 1px;
+        background: var(--border-color);
+        margin: 4px 0;
     }
 
     .badge {
@@ -557,7 +622,7 @@
     private List<SimulatorDeviceType> availableDeviceTypes = new();
     private HashSet<string> bootingSimulators = new();
     private bool isLoading = false;
-    private MauiSherpa.Components.SimulatorApps? simulatorAppsRef;
+    private string? openDropdownId;
 
     // Filters
     private string searchQuery = "";
@@ -862,12 +927,6 @@
         }
     }
 
-    private async Task ShowApps(SimulatorDevice sim)
-    {
-        if (simulatorAppsRef != null)
-            await simulatorAppsRef.Show(sim.Udid, sim.Name);
-    }
-
     private static string GetDeviceIcon(string? productFamily) => productFamily?.ToLowerInvariant() switch
     {
         "iphone" => "fa-mobile-screen",
@@ -877,51 +936,6 @@
         "apple vision" => "fa-vr-cardboard",
         _ => "fa-mobile-screen"
     };
-
-    private async Task TakeScreenshot(SimulatorDevice sim)
-    {
-        var savePath = await DialogService.PickSaveFileAsync(
-            "Save Screenshot",
-            $"{sim.Name}-screenshot.png",
-            "png");
-
-        if (string.IsNullOrEmpty(savePath)) return;
-
-        var result = await OperationModal.RunAsync(
-            "Take Screenshot",
-            $"Capturing screenshot from {sim.Name}...",
-            async ctx =>
-            {
-                ctx.LogInfo($"Simulator: {sim.Name}");
-                ctx.LogInfo($"UDID: {sim.Udid}");
-                ctx.SetStatus("Capturing screenshot...");
-
-                var success = await SimulatorService.TakeScreenshotAsync(sim.Udid, savePath,
-                    new Progress<string>(msg =>
-                    {
-                        ctx.LogInfo(msg);
-                        ctx.SetStatus(msg);
-                    }));
-
-                if (success)
-                {
-                    ctx.LogSuccess($"Screenshot saved to {savePath}");
-                }
-                return success;
-            },
-            canCancel: false);
-
-        if (result.Success)
-        {
-            FileSystem.RevealInFileManager(savePath);
-        }
-    }
-
-    private void RevealDataFolder(SimulatorDevice sim)
-    {
-        var dataPath = SimulatorService.GetSimulatorDataPath(sim.Udid);
-        FileSystem.RevealInFileManager(dataPath);
-    }
 
     private async Task CloneSimulator(SimulatorDevice sim)
     {
@@ -964,5 +978,15 @@
     {
         await DialogService.CopyToClipboardAsync(text);
         await AlertService.ShowToastAsync("Copied to clipboard");
+    }
+
+    private void ToggleDropdown(string udid)
+    {
+        openDropdownId = openDropdownId == udid ? null : udid;
+    }
+
+    private void CloseDropdown()
+    {
+        openDropdownId = null;
     }
 }
