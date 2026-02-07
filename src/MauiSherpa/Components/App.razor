@@ -1,4 +1,8 @@
 @using Microsoft.AspNetCore.Components.Routing
+@using MauiSherpa.Core.Interfaces
+@inject IUpdateService UpdateService
+@inject ILoggingService Logger
+@implements IDisposable
 
 <Router AppAssembly="@typeof(App).Assembly">
     <Found Context="routeData">
@@ -12,3 +16,76 @@
         </LayoutView>
     </NotFound>
 </Router>
+
+<UpdateAvailableModal 
+    UpdateResult="@_updateCheckResult" 
+    IsVisible="@_showUpdateModal"
+    OnAccept="@HandleUpdateAccept"
+    OnDecline="@HandleUpdateDecline" />
+
+@code {
+    private UpdateCheckResult? _updateCheckResult;
+    private bool _showUpdateModal;
+    private CancellationTokenSource _cts = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await base.OnInitializedAsync();
+        _ = CheckForUpdatesWithDelayAsync();
+    }
+
+    private async Task CheckForUpdatesWithDelayAsync()
+    {
+        try
+        {
+            await Task.Delay(3000, _cts.Token);
+            var result = await UpdateService.CheckForUpdateAsync(_cts.Token);
+
+            if (result.UpdateAvailable && result.LatestRelease != null)
+            {
+                await InvokeAsync(() =>
+                {
+                    _updateCheckResult = result;
+                    _showUpdateModal = true;
+                    StateHasChanged();
+                });
+            }
+        }
+        catch (OperationCanceledException) { }
+        catch (Exception ex)
+        {
+            Logger.LogError("Failed to check for updates", ex);
+        }
+    }
+
+    private async Task HandleUpdateAccept()
+    {
+        if (_updateCheckResult?.LatestRelease?.HtmlUrl is { Length: > 0 } url)
+        {
+            try
+            {
+                await Launcher.OpenAsync(new Uri(url));
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError("Failed to open release URL", ex);
+            }
+        }
+
+        _showUpdateModal = false;
+        StateHasChanged();
+    }
+
+    private Task HandleUpdateDecline()
+    {
+        _showUpdateModal = false;
+        StateHasChanged();
+        return Task.CompletedTask;
+    }
+
+    public void Dispose()
+    {
+        _cts.Cancel();
+        _cts.Dispose();
+    }
+}
