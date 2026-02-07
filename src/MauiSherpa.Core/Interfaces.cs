@@ -1,3 +1,5 @@
+using MauiSherpa.Core.Services;
+
 namespace MauiSherpa.Core.Interfaces;
 
 public interface IAlertService
@@ -103,6 +105,28 @@ public interface IAndroidSdkService
     // Path change notification
     event Action? SdkPathChanged;
 }
+
+public interface ILogcatService : IDisposable
+{
+    bool IsRunning { get; }
+    IReadOnlyList<LogcatEntry> Entries { get; }
+    Task StartAsync(string serial, CancellationToken ct = default);
+    void Stop();
+    void Clear();
+    IAsyncEnumerable<LogcatEntry> StreamAsync(CancellationToken ct = default);
+    event Action? OnCleared;
+}
+
+public interface IAdbDeviceWatcherService : IDisposable
+{
+    IReadOnlyList<DeviceInfo> Devices { get; }
+    bool IsWatching { get; }
+    Task StartAsync();
+    void Stop();
+    event Action<IReadOnlyList<DeviceInfo>>? DevicesChanged;
+}
+
+
 
 public interface IAndroidSdkSettingsService
 {

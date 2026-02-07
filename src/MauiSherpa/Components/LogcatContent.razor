@@ -1,0 +1,810 @@
+@using MauiSherpa.Core.Interfaces
+@using MauiSherpa.Core.Services
+@using MauiSherpa.Services
+@inject ILogcatService LogcatService
+@inject IAdbDeviceWatcherService DeviceWatcher
+@inject LogcatPanelService PanelService
+@inject IAlertService AlertService
+@inject ILoggingService Logger
+@inject IJSRuntime JS
+@implements IDisposable
+
+<div class="logcat-page">
+    <div class="logcat-toolbar">
+        <div class="toolbar-left">
+            <div class="device-selector" @onclick="FocusDeviceSelect">
+                <i class="fab fa-android device-selector-icon"></i>
+                <select class="device-select" @ref="deviceSelectRef" value="@Serial" @onchange="OnDeviceChanged">
+                    @foreach (var d in connectedDevices)
+                    {
+                        <option value="@d.Serial" selected="@(d.Serial == Serial)">@(d.Model ?? d.Serial)</option>
+                    }
+                </select>
+            </div>
+            @if (LogcatService.IsRunning)
+            {
+                <button class="btn btn-sm btn-danger" @onclick="StopLogcat">
+                    <i class="fas fa-stop"></i> Stop
+                </button>
+            }
+            else
+            {
+                <button class="btn btn-sm btn-success" @onclick="StartLogcat">
+                    <i class="fas fa-play"></i> Start
+                </button>
+            }
+            <button class="btn btn-sm btn-secondary" @onclick="ClearLogcat">
+                <i class="fas fa-trash-alt"></i> Clear
+            </button>
+            <button class="btn btn-sm @(isPaused ? "btn-warning" : "btn-secondary")" @onclick="TogglePause">
+                <i class="fas @(isPaused ? "fa-play" : "fa-pause")"></i> @(isPaused ? "Resume" : "Pause")
+            </button>
+            <button class="btn btn-sm @(autoScroll ? "btn-primary" : "btn-secondary")" @onclick="ToggleAutoScroll">
+                <i class="fas fa-arrow-down"></i> Auto-scroll
+            </button>
+        </div>
+        <div class="toolbar-right">
+            @if (LogcatService.IsRunning)
+            {
+                <span class="streaming-dot @(isPaused ? "paused" : "")"></span>
+            }
+        </div>
+    </div>
+
+    <div class="logcat-filters">
+        <div class="filter-group">
+            <label>Level</label>
+            <select @bind="filterLevel" @bind:after="ApplyFilters">
+                <option value="">All</option>
+                <option value="Verbose">V - Verbose</option>
+                <option value="Debug">D - Debug</option>
+                <option value="Info">I - Info</option>
+                <option value="Warning">W - Warning</option>
+                <option value="Error">E - Error</option>
+                <option value="Fatal">F - Fatal</option>
+            </select>
+        </div>
+        <div class="filter-group filter-grow">
+            <label>Tag</label>
+            <input type="text" placeholder="Filter by tag..." @bind="filterTag" @bind:event="oninput" @bind:after="DebouncedApplyFilters" />
+        </div>
+        <div class="filter-group">
+            <label>PID</label>
+            <input type="text" placeholder="PID" @bind="filterPid" @bind:event="oninput" @bind:after="DebouncedApplyFilters" class="input-pid" />
+        </div>
+        <div class="filter-group filter-grow">
+            <label>Search</label>
+            <input type="text" placeholder="Search messages..." @bind="filterText" @bind:event="oninput" @bind:after="DebouncedApplyFilters" />
+        </div>
+        @if (HasActiveFilters)
+        {
+            <button class="btn btn-sm btn-ghost" @onclick="ClearFilters">
+                <i class="fas fa-times"></i> Clear
+            </button>
+        }
+    </div>
+
+    <div class="logcat-grid-container">
+        <div class="logcat-grid">
+            <div class="grid-header">
+                <div class="col-time" style="width:@(colWidths[0])px">Time<span class="col-resizer" @onpointerdown="@(e => StartColResize(e, 0))"></span></div>
+                <div class="col-level" style="width:@(colWidths[1])px">Lvl<span class="col-resizer" @onpointerdown="@(e => StartColResize(e, 1))"></span></div>
+                <div class="col-pid" style="width:@(colWidths[2])px">PID<span class="col-resizer" @onpointerdown="@(e => StartColResize(e, 2))"></span></div>
+                <div class="col-tid" style="width:@(colWidths[3])px">TID<span class="col-resizer" @onpointerdown="@(e => StartColResize(e, 3))"></span></div>
+                <div class="col-tag" style="width:@(colWidths[4])px">Tag<span class="col-resizer" @onpointerdown="@(e => StartColResize(e, 4))"></span></div>
+                <div class="col-message">Message</div>
+            </div>
+            <div class="grid-body" @ref="gridBody" @onscroll="OnScroll">
+                <div style="height:@(filteredCount * RowHeight)px;position:relative;">
+                    <div style="position:absolute;top:@(visibleStart * RowHeight)px;left:0;right:0;">
+                        @for (int i = visibleStart; i < visibleEnd; i++)
+                        {
+                            var entry = filteredEntries[i];
+                            <div class="grid-row @GetLevelClass(entry.Level)">
+                                <div class="col-time" style="width:@(colWidths[0])px">@FormatTimestamp(entry.Timestamp)</div>
+                                <div class="col-level" style="width:@(colWidths[1])px"><span class="level-badge @GetLevelBadgeClass(entry.Level)">@GetLevelChar(entry.Level)</span></div>
+                                <div class="col-pid" style="width:@(colWidths[2])px">@entry.Pid</div>
+                                <div class="col-tid" style="width:@(colWidths[3])px">@entry.Tid</div>
+                                <div class="col-tag" style="width:@(colWidths[4])px" title="@entry.Tag">@entry.Tag</div>
+                                <div class="col-message" title="@entry.Message">@entry.Message</div>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .logcat-page {
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+        gap: 0;
+    }
+
+    .logcat-toolbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 6px 8px;
+        background: var(--bg-secondary);
+        border-bottom: 1px solid var(--border-color);
+        flex-shrink: 0;
+    }
+    .toolbar-left {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+    .toolbar-right {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+    .device-selector {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        background: var(--bg-tertiary);
+        padding: 2px 8px 2px 10px;
+        border-radius: 20px;
+        border: 1px solid var(--border-color);
+        cursor: pointer;
+        transition: border-color 0.15s;
+    }
+    .device-selector:focus-within {
+        border-color: var(--accent-primary, #4299e1);
+    }
+    .device-selector-icon {
+        color: #3ddc84;
+        font-size: 13px;
+        flex-shrink: 0;
+        pointer-events: none;
+    }
+    .device-select {
+        background: transparent;
+        border: none;
+        color: var(--text-primary);
+        font-size: 12px;
+        font-weight: 600;
+        font-family: 'Consolas', 'Monaco', monospace;
+        cursor: pointer;
+        outline: none;
+        padding: 2px 0;
+        max-width: 180px;
+        -webkit-appearance: none;
+        appearance: none;
+    }
+    .device-select:focus {
+        outline: none;
+        box-shadow: none;
+    }
+    .device-select option {
+        background: var(--bg-secondary);
+        color: var(--text-primary);
+    }
+
+    .streaming-dot {
+        display: inline-block;
+        width: 8px;
+        height: 8px;
+        background: #48bb78;
+        border-radius: 50%;
+        margin-left: 6px;
+        animation: pulse 1.5s ease-in-out infinite;
+    }
+    .streaming-dot.paused {
+        background: #ed8936;
+        animation: none;
+    }
+
+    @@keyframes pulse {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.3; }
+    }
+
+    /* Filter bar */
+    .logcat-filters {
+        display: flex;
+        align-items: flex-end;
+        gap: 8px;
+        padding: 5px 8px;
+        background: var(--bg-secondary);
+        border-bottom: 1px solid var(--border-color);
+        flex-shrink: 0;
+    }
+    .filter-group {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+    }
+    .filter-group label {
+        font-size: 10px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        color: var(--text-muted);
+        font-weight: 600;
+    }
+    .filter-grow { flex: 1; }
+    .filter-group input, .filter-group select {
+        background: var(--bg-tertiary);
+        border: 1px solid var(--border-color);
+        color: var(--text-primary);
+        padding: 4px 8px;
+        border-radius: 4px;
+        font-size: 12px;
+        font-family: 'Consolas', 'Monaco', monospace;
+    }
+    .filter-group input:focus, .filter-group select:focus {
+        outline: none;
+        border-color: var(--accent-primary);
+    }
+    .input-pid { width: 70px; }
+
+    /* Grid */
+    .logcat-grid-container {
+        flex: 1;
+        overflow: hidden;
+        background: var(--bg-primary, #1a1a2e);
+    }
+    .logcat-grid {
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+        font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+        font-size: 12px;
+    }
+    .grid-header {
+        display: flex;
+        padding: 4px 0;
+        background: var(--bg-tertiary);
+        border-bottom: 2px solid var(--border-color);
+        font-weight: 700;
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        color: var(--text-secondary);
+        flex-shrink: 0;
+    }
+    .grid-header > div {
+        position: relative;
+        padding: 0 6px;
+        flex-shrink: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+    .grid-header > .col-message { flex: 1; flex-shrink: 1; }
+    .col-resizer {
+        position: absolute;
+        top: 0;
+        right: -3px;
+        width: 7px;
+        height: 100%;
+        cursor: col-resize;
+        z-index: 5;
+    }
+    .col-resizer:hover, .col-resizer:active {
+        background: var(--accent-primary, #4299e1);
+        opacity: 0.4;
+        border-radius: 2px;
+    }
+    .grid-body {
+        flex: 1;
+        overflow-y: auto;
+        overflow-x: hidden;
+    }
+    .grid-row {
+        display: flex;
+        height: 22px;
+        line-height: 22px;
+        box-sizing: border-box;
+    }
+    .grid-row > div {
+        padding: 0 6px;
+        flex-shrink: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+    .grid-row > .col-message { flex: 1; flex-shrink: 1; }
+    .grid-row:hover {
+        background: rgba(255,255,255,0.05) !important;
+    }
+
+    /* Column colors */
+    .col-time { color: var(--text-muted); }
+    .col-level { text-align: center; }
+    .col-pid { color: var(--text-secondary); }
+    .col-tid { color: var(--text-secondary); }
+    .col-tag { color: var(--text-primary); font-weight: 500; }
+    .col-message { color: var(--text-primary); }
+
+    /* Level badges */
+    .level-badge {
+        display: inline-block;
+        width: 20px;
+        height: 18px;
+        line-height: 18px;
+        text-align: center;
+        border-radius: 3px;
+        font-weight: 700;
+        font-size: 11px;
+    }
+    .level-v { background: #4a5568; color: #a0aec0; }
+    .level-d { background: #2b6cb0; color: #bee3f8; }
+    .level-i { background: #276749; color: #c6f6d5; }
+    .level-w { background: #975a16; color: #fefcbf; }
+    .level-e { background: #9b2c2c; color: #fed7d7; }
+    .level-f { background: #702459; color: #fed7e2; }
+
+    /* Row level tinting */
+    .row-verbose { }
+    .row-debug { }
+    .row-info { }
+    .row-warning { background: rgba(237, 137, 54, 0.06); }
+    .row-error { background: rgba(245, 101, 101, 0.10); }
+    .row-fatal { background: rgba(183, 62, 137, 0.12); }
+
+    /* Buttons */
+    .btn { padding: 6px 14px; border: none; border-radius: 5px; font-size: 12px; cursor: pointer; display: inline-flex; align-items: center; gap: 5px; transition: all 0.15s; }
+    .btn i { font-size: 11px; }
+    .btn-sm { padding: 4px 8px; font-size: 11px; }
+    .btn-primary { background: var(--accent-primary); color: white; }
+    .btn-secondary { background: var(--bg-tertiary); color: var(--text-secondary); border: 1px solid var(--border-color); }
+    .btn-success { background: #48bb78; color: white; }
+    .btn-danger { background: #f56565; color: white; }
+    .btn-warning { background: #ed8936; color: white; }
+    .btn-ghost { background: transparent; color: var(--text-muted); }
+    .btn:hover:not(:disabled) { filter: brightness(1.1); }
+    .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+</style>
+
+@code {
+    [Parameter] public string Serial { get; set; } = "";
+
+    private ElementReference gridBody;
+    private ElementReference deviceSelectRef;
+    private List<DeviceInfo> connectedDevices = new();
+
+    private List<LogcatEntry> filteredEntries = new();
+    private int filteredCount;
+    private int totalCount;
+    private bool isPaused;
+    private bool autoScroll = true;
+
+    // Virtualization
+    private const int RowHeight = 22;
+    private const int OverscanRows = 10;
+    private int visibleStart;
+    private int visibleEnd;
+    private double scrollTop;
+    private double viewportHeight;
+
+    // Column widths (px) — Time, Lvl, PID, TID, Tag; Message is 1fr
+    private double[] colWidths = [90, 36, 56, 56, 160];
+    private const int ColCount = 5; // resizable columns (Message excluded)
+
+    // Column resize state
+    private bool isColResizing;
+    private int resizeColIndex;
+    private double colResizeStartX;
+    private double colResizeStartWidth;
+    private DotNetObjectReference<LogcatContent>? colResizeSelfRef;
+
+    // Filters
+    private string filterLevel = "";
+    private string filterTag = "";
+    private string filterPid = "";
+    private string filterText = "";
+
+    private bool HasActiveFilters => !string.IsNullOrEmpty(filterLevel) || !string.IsNullOrEmpty(filterTag)
+        || !string.IsNullOrEmpty(filterPid) || !string.IsNullOrEmpty(filterText);
+
+    // Stream
+    private CancellationTokenSource? _streamCts;
+    private CancellationTokenSource? _filterDebounce;
+
+    protected override async Task OnInitializedAsync()
+    {
+        LogcatService.OnCleared += OnLogcatCleared;
+        PanelService.DeviceChanged += OnDeviceSwitched;
+        DeviceWatcher.DevicesChanged += OnWatcherDevicesChanged;
+        connectedDevices = DeviceWatcher.Devices.ToList();
+        if (connectedDevices.Count == 0)
+            connectedDevices = new() { new DeviceInfo(Serial, "device", null, false) };
+        await StartLogcat();
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            colResizeSelfRef = DotNetObjectReference.Create(this);
+            await JS.InvokeVoidAsync("eval", @"
+                window.__logcatColResize = {
+                    onMove: null, onUp: null,
+                    start: function(dotnetRef) {
+                        this.onMove = (e) => { e.preventDefault(); dotnetRef.invokeMethodAsync('OnColResizeMoveJS', e.clientX); };
+                        this.onUp = () => { dotnetRef.invokeMethodAsync('OnColResizeUpJS'); window.__logcatColResize.stop(); };
+                        document.addEventListener('pointermove', this.onMove);
+                        document.addEventListener('pointerup', this.onUp);
+                    },
+                    stop: function() {
+                        if (this.onMove) document.removeEventListener('pointermove', this.onMove);
+                        if (this.onUp) document.removeEventListener('pointerup', this.onUp);
+                        this.onMove = null; this.onUp = null;
+                    }
+                };
+            ");
+            await UpdateViewportHeight();
+        }
+    }
+
+    private async Task UpdateViewportHeight()
+    {
+        try
+        {
+            viewportHeight = await JS.InvokeAsync<double>("eval", "(function(){ var el = document.querySelector('.grid-body'); return el ? el.clientHeight : 400; })()");
+            RecalcVisibleRange();
+        }
+        catch { viewportHeight = 400; }
+    }
+
+    private void RecalcVisibleRange()
+    {
+        var count = filteredCount;
+        if (count == 0)
+        {
+            visibleStart = 0;
+            visibleEnd = 0;
+            return;
+        }
+
+        int firstVisible = Math.Max(0, (int)(scrollTop / RowHeight) - OverscanRows);
+        int visibleRows = (int)Math.Ceiling(viewportHeight / RowHeight) + OverscanRows * 2;
+        visibleStart = firstVisible;
+        visibleEnd = Math.Min(count, firstVisible + visibleRows);
+    }
+
+    private void OnScroll(EventArgs e)
+    {
+        _ = InvokeAsync(async () =>
+        {
+            try
+            {
+                var dims = await JS.InvokeAsync<double[]>("eval", "(function(){ var el = document.querySelector('.grid-body'); return el ? [el.scrollTop, el.clientHeight] : [0, 400]; })()");
+                scrollTop = dims[0];
+                if (dims[1] > 0) viewportHeight = dims[1];
+                var maxScroll = filteredCount * RowHeight - viewportHeight;
+                if (maxScroll > 0 && scrollTop < maxScroll - RowHeight * 2)
+                    autoScroll = false;
+                RecalcVisibleRange();
+                StateHasChanged();
+            }
+            catch { }
+        });
+    }
+
+    private async Task StartLogcat()
+    {
+        try
+        {
+            _streamCts?.Cancel();
+            _streamCts = new CancellationTokenSource();
+            await LogcatService.StartAsync(Serial);
+            _ = ConsumeStreamAsync(_streamCts.Token);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError($"Failed to start logcat: {ex.Message}", ex);
+            await AlertService.ShowAlertAsync("Error", $"Failed to start logcat: {ex.Message}");
+        }
+    }
+
+    private async Task ConsumeStreamAsync(CancellationToken ct)
+    {
+        const int batchIntervalMs = 150;
+        var lastFlush = Environment.TickCount64;
+        var viewportChecked = false;
+
+        try
+        {
+            await foreach (var entry in LogcatService.StreamAsync(ct))
+            {
+                if (isPaused)
+                {
+                    continue;
+                }
+
+                var now = Environment.TickCount64;
+                if (now - lastFlush >= batchIntervalMs)
+                {
+                    lastFlush = now;
+
+                    // Re-check viewport height periodically until it stabilizes
+                    if (!viewportChecked || viewportHeight <= 400)
+                    {
+                        await UpdateViewportHeight();
+                        if (viewportHeight > 400) viewportChecked = true;
+                    }
+
+                    await InvokeAsync(() =>
+                    {
+                        ApplyFilters();
+                        if (autoScroll)
+                            ScrollToBottom();
+                        StateHasChanged();
+                    });
+                }
+            }
+        }
+        catch (OperationCanceledException) { }
+
+        // Final flush
+        await InvokeAsync(() =>
+        {
+            ApplyFilters();
+            StateHasChanged();
+        });
+    }
+
+    private void StopLogcat()
+    {
+        _streamCts?.Cancel();
+        LogcatService.Stop();
+        InvokeAsync(StateHasChanged);
+    }
+
+    private void ClearLogcat()
+    {
+        LogcatService.Clear();
+    }
+
+    private void TogglePause()
+    {
+        isPaused = !isPaused;
+        if (!isPaused)
+        {
+            ApplyFilters();
+            ScrollToBottom();
+            StateHasChanged();
+        }
+    }
+
+    private void ToggleAutoScroll()
+    {
+        autoScroll = !autoScroll;
+        if (autoScroll)
+            ScrollToBottom();
+    }
+
+    private void OnLogcatCleared()
+    {
+        InvokeAsync(() =>
+        {
+            filteredEntries.Clear();
+            filteredCount = 0;
+            totalCount = 0;
+            scrollTop = 0;
+            RecalcVisibleRange();
+            StateHasChanged();
+        });
+    }
+
+    private void ScrollToBottom()
+    {
+        scrollTop = Math.Max(0, filteredCount * RowHeight - viewportHeight);
+        RecalcVisibleRange();
+        _ = InvokeAsync(async () =>
+        {
+            try
+            {
+                await JS.InvokeVoidAsync("eval", "(function(){ var el = document.querySelector('.grid-body'); if(el) el.scrollTop = el.scrollHeight; })()");
+            }
+            catch { }
+        });
+    }
+
+    private void ApplyFilters()
+    {
+        var entries = LogcatService.Entries;
+        totalCount = entries.Count;
+
+        LogcatLevel? minLevel = filterLevel switch
+        {
+            "Verbose" => LogcatLevel.Verbose,
+            "Debug" => LogcatLevel.Debug,
+            "Info" => LogcatLevel.Info,
+            "Warning" => LogcatLevel.Warning,
+            "Error" => LogcatLevel.Error,
+            "Fatal" => LogcatLevel.Fatal,
+            _ => null
+        };
+
+        int? pidFilter = int.TryParse(filterPid, out var p) ? p : null;
+        var tagFilter = filterTag?.Trim();
+        var textFilter = filterText?.Trim();
+
+        IEnumerable<LogcatEntry> query = entries;
+
+        if (minLevel.HasValue)
+            query = query.Where(e => e.Level >= minLevel.Value);
+        if (pidFilter.HasValue)
+            query = query.Where(e => e.Pid == pidFilter.Value);
+        if (!string.IsNullOrEmpty(tagFilter))
+            query = query.Where(e => e.Tag.Contains(tagFilter, StringComparison.OrdinalIgnoreCase));
+        if (!string.IsNullOrEmpty(textFilter))
+            query = query.Where(e => e.Message.Contains(textFilter, StringComparison.OrdinalIgnoreCase)
+                || e.Tag.Contains(textFilter, StringComparison.OrdinalIgnoreCase));
+
+        filteredEntries = query.ToList();
+        filteredCount = filteredEntries.Count;
+        RecalcVisibleRange();
+    }
+
+    private async Task DebouncedApplyFilters()
+    {
+        _filterDebounce?.Cancel();
+        _filterDebounce = new CancellationTokenSource();
+        var token = _filterDebounce.Token;
+
+        try
+        {
+            await Task.Delay(300, token);
+            ApplyFilters();
+            StateHasChanged();
+        }
+        catch (TaskCanceledException) { }
+    }
+
+    private void ClearFilters()
+    {
+        filterLevel = "";
+        filterTag = "";
+        filterPid = "";
+        filterText = "";
+        ApplyFilters();
+    }
+
+    private static string GetLevelChar(LogcatLevel level) => level switch
+    {
+        LogcatLevel.Verbose => "V",
+        LogcatLevel.Debug => "D",
+        LogcatLevel.Info => "I",
+        LogcatLevel.Warning => "W",
+        LogcatLevel.Error => "E",
+        LogcatLevel.Fatal => "F",
+        _ => "?"
+    };
+
+    private static string GetLevelBadgeClass(LogcatLevel level) => level switch
+    {
+        LogcatLevel.Verbose => "level-v",
+        LogcatLevel.Debug => "level-d",
+        LogcatLevel.Info => "level-i",
+        LogcatLevel.Warning => "level-w",
+        LogcatLevel.Error => "level-e",
+        LogcatLevel.Fatal => "level-f",
+        _ => "level-v"
+    };
+
+    private static string GetLevelClass(LogcatLevel level) => level switch
+    {
+        LogcatLevel.Verbose => "row-verbose",
+        LogcatLevel.Debug => "row-debug",
+        LogcatLevel.Info => "row-info",
+        LogcatLevel.Warning => "row-warning",
+        LogcatLevel.Error => "row-error",
+        LogcatLevel.Fatal => "row-fatal",
+        _ => ""
+    };
+
+    // Timestamp: strip "MM-DD " prefix, show only "HH:MM:SS.mmm"
+    private static string FormatTimestamp(string ts)
+    {
+        // Timestamps are "MM-DD HH:MM:SS.mmm" — find the space after date
+        var spaceIdx = ts.IndexOf(' ');
+        return spaceIdx >= 0 ? ts[(spaceIdx + 1)..] : ts;
+    }
+
+    // Column resize
+    private async void StartColResize(PointerEventArgs e, int colIndex)
+    {
+        isColResizing = true;
+        resizeColIndex = colIndex;
+        colResizeStartX = e.ClientX;
+        colResizeStartWidth = colWidths[colIndex];
+        if (colResizeSelfRef != null)
+            await JS.InvokeVoidAsync("window.__logcatColResize.start", colResizeSelfRef);
+    }
+
+    [JSInvokable]
+    public void OnColResizeMoveJS(double clientX)
+    {
+        if (!isColResizing) return;
+        var delta = clientX - colResizeStartX;
+        var newWidth = Math.Max(24, colResizeStartWidth + delta);
+        colWidths[resizeColIndex] = newWidth;
+        InvokeAsync(StateHasChanged);
+    }
+
+    [JSInvokable]
+    public void OnColResizeUpJS()
+    {
+        isColResizing = false;
+        InvokeAsync(StateHasChanged);
+    }
+
+    // Device watcher integration
+    private async Task FocusDeviceSelect()
+    {
+        // Blur then re-focus to allow reopening the dropdown even when already focused
+        await JS.InvokeVoidAsync("eval", "(function(){ var el = document.querySelector('.device-select'); if(el){ el.blur(); el.focus(); el.click(); } })()");
+    }
+
+    private void OnWatcherDevicesChanged(IReadOnlyList<DeviceInfo> newDevices)
+    {
+        InvokeAsync(() =>
+        {
+            connectedDevices = newDevices.ToList();
+
+            // If active device disconnected, stop logcat
+            if (!string.IsNullOrEmpty(Serial) && !newDevices.Any(d => d.Serial == Serial))
+            {
+                _streamCts?.Cancel();
+                LogcatService.Stop();
+                isPaused = true; // Show paused state
+            }
+
+            StateHasChanged();
+        });
+    }
+
+    private async Task OnDeviceChanged(ChangeEventArgs e)
+    {
+        var newSerial = e.Value?.ToString();
+        if (string.IsNullOrEmpty(newSerial) || newSerial == Serial) return;
+        PanelService.SwitchDevice(newSerial, connectedDevices.FirstOrDefault(d => d.Serial == newSerial)?.Model);
+    }
+
+    private void OnDeviceSwitched(string newSerial)
+    {
+        _ = InvokeAsync(async () =>
+        {
+            // Stop current stream and clean up
+            _streamCts?.Cancel();
+            LogcatService.Stop();
+            LogcatService.Clear();
+
+            // Reset UI state
+            Serial = newSerial;
+            filteredEntries.Clear();
+            filteredCount = 0;
+            totalCount = 0;
+            scrollTop = 0;
+            isPaused = false;
+            autoScroll = true;
+            RecalcVisibleRange();
+            StateHasChanged();
+
+            // Start new stream
+            await StartLogcat();
+        });
+    }
+
+    public void Dispose()
+    {
+        _streamCts?.Cancel();
+        _streamCts?.Dispose();
+        LogcatService.OnCleared -= OnLogcatCleared;
+        PanelService.DeviceChanged -= OnDeviceSwitched;
+        DeviceWatcher.DevicesChanged -= OnWatcherDevicesChanged;
+        _filterDebounce?.Dispose();
+        colResizeSelfRef?.Dispose();
+        LogcatService.Stop();
+    }
+}

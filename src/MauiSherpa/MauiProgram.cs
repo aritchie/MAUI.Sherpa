@@ -61,6 +61,9 @@ public static class MauiProgram
         // Core services
         builder.Services.AddSingleton<IAndroidSdkService, AndroidSdkService>();
         builder.Services.AddSingleton<IAndroidSdkSettingsService, AndroidSdkSettingsService>();
+        builder.Services.AddSingleton<ILogcatService, LogcatService>();
+        builder.Services.AddSingleton<IAdbDeviceWatcherService, AdbDeviceWatcherService>();
+        builder.Services.AddSingleton<LogcatPanelService>();
         builder.Services.AddSingleton<IDoctorService, DoctorService>();
         builder.Services.AddSingleton<ICopilotToolsService, CopilotToolsService>();
         builder.Services.AddSingleton<ICopilotService, CopilotService>();
