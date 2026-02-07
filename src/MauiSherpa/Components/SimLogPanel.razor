@@ -69,6 +69,10 @@
                             @onclick="@(() => PanelService.SetTab(SimInspectorTab.Capture))">
                         <i class="fas fa-camera"></i> Capture
                     </button>
+                    <button class="inspector-tab @(PanelService.ActiveTab == SimInspectorTab.Tools ? "active" : "")"
+                            @onclick="@(() => PanelService.SetTab(SimInspectorTab.Tools))">
+                        <i class="fas fa-wrench"></i> Tools
+                    </button>
                 </div>
                 <div class="sim-inspector-device-selector">
                     <i class="fab fa-apple sim-inspector-device-icon"></i>
@@ -92,6 +96,9 @@
                         break;
                     case SimInspectorTab.Capture:
                         <SimCaptureTab Udid="@(PanelService.ActiveUdid!)" />
+                        break;
+                    case SimInspectorTab.Tools:
+                        <SimToolsTab Udid="@(PanelService.ActiveUdid!)" />
                         break;
                 }
             </div>

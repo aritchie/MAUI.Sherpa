@@ -1,6 +1,6 @@
 namespace MauiSherpa.Services;
 
-public enum SimInspectorTab { Logs, Apps, Capture }
+public enum SimInspectorTab { Logs, Apps, Capture, Tools }
 
 public class SimInspectorService
 {
