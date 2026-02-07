@@ -6,9 +6,11 @@
 @inject IMediator Mediator
 @inject IAndroidSdkService SdkService
 @inject IAndroidSdkSettingsService SdkSettings
+@inject IAdbDeviceWatcherService DeviceWatcher
 @inject IAlertService AlertService
 @inject IDialogService DialogService
 @inject IFileSystemService FileSystem
+@inject LogcatPanelService LogcatPanel
 @inject BlazorToastService ToastService
 @implements IDisposable
 
@@ -89,6 +91,9 @@
                     </div>
                 </div>
                 <div class="device-actions">
+                    <button class="btn btn-info btn-sm" @onclick="@(() => LogcatPanel.Open(device.Serial, device.Model ?? device.Serial))">
+                        <i class="fas fa-scroll"></i> Logcat
+                    </button>
                     @if (device.IsEmulator)
                     {
                         <button class="btn btn-danger btn-sm" @onclick="@(() => StopEmulator(device.Serial))" disabled="@isLoading">
@@ -188,6 +193,15 @@
     .btn-danger {
         background-color: #f56565;
         color: white;
+    }
+
+    .btn-info {
+        background-color: var(--accent-primary);
+        color: white;
+    }
+
+    .btn-info:hover:not(:disabled) {
+        background-color: #3182ce;
     }
 
     .btn-danger:hover:not(:disabled) {
@@ -328,10 +342,30 @@
     {
         // Subscribe to SDK path changes from Settings
         SdkService.SdkPathChanged += OnSdkPathChanged;
+        DeviceWatcher.DevicesChanged += OnDevicesChanged;
         
         // Initialize SDK settings (loads stored custom path if any)
         await SdkSettings.InitializeAsync();
-        await RefreshDevices();
+
+        // Use watcher's cached devices if available, otherwise fetch
+        var cached = DeviceWatcher.Devices;
+        if (cached.Count > 0)
+        {
+            devices = cached.ToList();
+        }
+        else
+        {
+            await RefreshDevices();
+        }
+    }
+
+    private void OnDevicesChanged(IReadOnlyList<DeviceInfo> newDevices)
+    {
+        InvokeAsync(() =>
+        {
+            devices = newDevices.ToList();
+            StateHasChanged();
+        });
     }
 
     private void OnSdkPathChanged()
@@ -401,5 +435,6 @@
     public void Dispose()
     {
         SdkService.SdkPathChanged -= OnSdkPathChanged;
+        DeviceWatcher.DevicesChanged -= OnDevicesChanged;
     }
 }

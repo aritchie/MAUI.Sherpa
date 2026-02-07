@@ -35,13 +35,14 @@
 
   <ItemGroup>
     <PackageReference Include="Blazorise.Icons.FontAwesome" Version="1.7.2" />
+    <PackageReference Include="Microsoft.AspNetCore.Components.QuickGrid" Version="10.0.1" />
     <PackageReference Include="Markdig" Version="0.44.0" />
     <PackageReference Include="Microsoft.AspNetCore.Components.WebView.Maui" Version="10.0.1" />
     <PackageReference Include="Microsoft.Extensions.Caching.Memory" Version="10.0.0" />
     <PackageReference Include="Microsoft.Maui.Controls" Version="10.0.10" />
     <PackageReference Include="Microsoft.Extensions.Logging.Debug" Version="10.0.0" />
-    <PackageReference Include="Redth.MauiDevFlow.Agent" Version="0.4.1" />
-    <PackageReference Include="Redth.MauiDevFlow.Blazor" Version="0.4.1" />
+    <PackageReference Include="Redth.MauiDevFlow.Agent" Version="0.5.0" />
+    <PackageReference Include="Redth.MauiDevFlow.Blazor" Version="0.5.0" />
     <PackageReference Include="Shiny.Mediator.Caching.MicrosoftMemoryCache" Version="6.1.1" />
     <PackageReference Include="Shiny.Mediator.Maui" Version="6.1.1" />
   </ItemGroup>
