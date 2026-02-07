@@ -110,19 +110,41 @@ public class UpdateService : IUpdateService
         
         try
         {
-            var remoteParts = remote.Split('.').Select(int.Parse).ToArray();
-            var currentParts = current.Split('.').Select(int.Parse).ToArray();
+            // Split by '-' to handle pre-release versions (e.g., "1.0.0-beta")
+            // We only compare the main version part
+            var remoteParts = remote.Split('-')[0].Split('.');
+            var currentParts = current.Split('-')[0].Split('.');
             
-            // Pad with zeros if lengths differ
-            var maxLength = Math.Max(remoteParts.Length, currentParts.Length);
-            Array.Resize(ref remoteParts, maxLength);
-            Array.Resize(ref currentParts, maxLength);
+            // Parse numeric parts, stopping at first non-numeric
+            var remoteNumbers = new List<int>();
+            var currentNumbers = new List<int>();
             
+            foreach (var part in remoteParts)
+            {
+                if (int.TryParse(part, out var num))
+                    remoteNumbers.Add(num);
+                else
+                    break; // Stop at first non-numeric part
+            }
+            
+            foreach (var part in currentParts)
+            {
+                if (int.TryParse(part, out var num))
+                    currentNumbers.Add(num);
+                else
+                    break; // Stop at first non-numeric part
+            }
+            
+            // Compare each version component
+            var maxLength = Math.Max(remoteNumbers.Count, currentNumbers.Count);
             for (int i = 0; i < maxLength; i++)
             {
-                if (remoteParts[i] > currentParts[i])
+                var remotePart = i < remoteNumbers.Count ? remoteNumbers[i] : 0;
+                var currentPart = i < currentNumbers.Count ? currentNumbers[i] : 0;
+                
+                if (remotePart > currentPart)
                     return true;
-                if (remoteParts[i] < currentParts[i])
+                if (remotePart < currentPart)
                     return false;
             }
             
