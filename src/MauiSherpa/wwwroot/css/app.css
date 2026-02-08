@@ -144,6 +144,47 @@
     --tool-indicator-icon: #a78bfa;
 }
 
+/* Prevent accidental text selection across the app (native app feel) */
+*,
+*::before,
+*::after {
+    -webkit-user-select: none;
+    user-select: none;
+}
+
+/* Re-enable selection for actual text content */
+input,
+textarea,
+select,
+[contenteditable="true"] {
+    -webkit-user-select: text;
+    user-select: text;
+}
+
+code,
+pre,
+.mono,
+.operation-log,
+.terminal-container,
+.shell-terminal-container,
+.col-message,
+.simlog-grid-body,
+.dep-message,
+.error-bar,
+.toast-message,
+.sherpa-toast-message,
+.log-message,
+.log-entry,
+.error-message,
+.alert,
+.assistant-message,
+.chat-messages,
+p.text-danger,
+.text-selectable {
+    -webkit-user-select: text;
+    user-select: text;
+}
+
 /* Global styles using CSS variables */
 h1, h2, h3, h4, h5, h6 {
     color: var(--text-primary);
