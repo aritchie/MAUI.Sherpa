@@ -20,8 +20,8 @@
     
     /* Card styles */
     --card-bg: #ffffff;
-    --card-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-    --card-shadow-lg: 0 4px 6px rgba(0, 0, 0, 0.1);
+    --card-shadow: 0 2px 0.25rem rgba(0, 0, 0, 0.1);
+    --card-shadow-lg: 0 0.25rem 0.375rem rgba(0, 0, 0, 0.1);
     
     /* Input styles */
     --input-bg: #ffffff;
@@ -102,8 +102,8 @@
     
     /* Card styles */
     --card-bg: #2d3748;
-    --card-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
-    --card-shadow-lg: 0 4px 6px rgba(0, 0, 0, 0.4);
+    --card-shadow: 0 2px 0.25rem rgba(0, 0, 0, 0.3);
+    --card-shadow-lg: 0 0.25rem 0.375rem rgba(0, 0, 0, 0.4);
     
     /* Input styles */
     --input-bg: #374151;
@@ -172,6 +172,14 @@
     user-select: none;
 }
 
+/* Ensure buttons and inputs inherit font-size from the cascade (rem scaling) */
+button,
+input,
+select,
+textarea {
+    font-size: inherit;
+}
+
 /* Re-enable selection for actual text content */
 
 /* Demo Mode: blur sensitive values */
@@ -225,7 +233,7 @@ h1, h2, h3, h4, h5, h6 {
 h1 > i.fas,
 h1 > i.fab {
     font-size: 0.85em;
-    margin-right: 6px;
+    margin-right: 0.375rem;
     opacity: 0.85;
 }
 
@@ -308,8 +316,8 @@ code,
 .mono {
     background-color: var(--bg-tertiary);
     color: var(--text-primary);
-    padding: 6px 10px;
-    border-radius: 6px;
+    padding: 0.375rem 0.625rem;
+    border-radius: 0.375rem;
 }
 
 pre {
@@ -335,8 +343,8 @@ pre {
 /* Global Loading State */
 .loading-state {
     background: var(--card-bg);
-    border-radius: 8px;
-    padding: 60px 40px;
+    border-radius: 0.5rem;
+    padding: 3.75rem 2.5rem;
     text-align: center;
     box-shadow: var(--card-shadow);
     user-select: none;
@@ -344,7 +352,7 @@ pre {
 
 .loading-spinner {
     color: var(--accent-primary);
-    margin-bottom: 20px;
+    margin-bottom: 1.25rem;
     animation: pulse 1.5s ease-in-out infinite;
 }
 
@@ -356,7 +364,7 @@ pre {
     font-size: 1.25rem;
     font-weight: 600;
     color: var(--text-primary);
-    margin-bottom: 8px;
+    margin-bottom: 0.5rem;
 }
 
 .loading-description {
@@ -372,15 +380,15 @@ pre {
 /* Global Empty State */
 .empty-state {
     background: var(--card-bg);
-    border-radius: 8px;
-    padding: 60px 40px;
+    border-radius: 0.5rem;
+    padding: 3.75rem 2.5rem;
     text-align: center;
     box-shadow: var(--card-shadow);
 }
 
 .empty-icon {
     font-size: 48px;
-    margin-bottom: 16px;
+    margin-bottom: 1rem;
     color: var(--text-muted);
 }
 
@@ -392,7 +400,7 @@ pre {
     font-size: 1.125rem;
     font-weight: 600;
     color: var(--text-primary);
-    margin-bottom: 8px;
+    margin-bottom: 0.5rem;
 }
 
 .empty-description {
@@ -550,7 +558,7 @@ pre {
 .section {
     background: var(--card-bg);
     border: 1px solid var(--border-color);
-    border-radius: 8px;
+    border-radius: 0.5rem;
 }
 
 .section-header {
@@ -802,7 +810,7 @@ pre {
 
 .dialog {
     background: var(--card-bg);
-    border-radius: 12px;
+    border-radius: 0.75rem;
     width: 90%;
     max-width: 600px;
     max-height: 85vh;
@@ -816,7 +824,7 @@ pre {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 16px 24px;
+    padding: 1rem 1.5rem;
     border-bottom: 1px solid var(--border-color);
 }
 
@@ -829,22 +837,22 @@ pre {
 
 .dialog-body {
     flex: 1;
-    padding: 24px;
+    padding: 1.5rem;
     overflow-y: auto;
 }
 
 .dialog-footer {
     display: flex;
     justify-content: flex-end;
-    padding: 16px 24px;
+    padding: 1rem 1.5rem;
     border-top: 1px solid var(--border-color);
-    gap: 12px;
+    gap: 0.75rem;
 }
 
 /* Selection lists for dialogs */
 .selection-list {
     border: 1px solid var(--border-color);
-    border-radius: 8px;
+    border-radius: 0.5rem;
     background: var(--input-bg);
     overflow-y: auto;
 }
@@ -852,8 +860,8 @@ pre {
 .selection-item {
     display: flex;
     align-items: flex-start;
-    gap: 12px;
-    padding: 12px 14px;
+    gap: 0.75rem;
+    padding: 0.75rem 0.875rem;
     border-bottom: 1px solid var(--border-color);
     cursor: pointer;
     transition: background 0.15s;
@@ -891,12 +899,12 @@ pre {
 /* Warning banner for dialogs */
 .warning-banner {
     display: flex;
-    gap: 12px;
-    padding: 16px;
+    gap: 0.75rem;
+    padding: 1rem;
     background: var(--status-warning-bg);
     border: 1px solid var(--accent-warning);
-    border-radius: 8px;
-    margin-bottom: 20px;
+    border-radius: 0.5rem;
+    margin-bottom: 1.25rem;
 }
 
 .warning-banner i {
@@ -912,15 +920,15 @@ pre {
 
 /* Selection summary */
 .selection-summary {
-    margin-top: 8px;
-    padding: 8px 12px;
+    margin-top: 0.5rem;
+    padding: 0.5rem 0.75rem;
     background: var(--status-success-bg);
-    border-radius: 6px;
+    border-radius: 0.375rem;
     font-size: 0.8125rem;
     color: var(--status-success-text);
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 0.5rem;
 }
 
 .selection-summary.warning {
