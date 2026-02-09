@@ -124,6 +124,7 @@ dotnet maui-devflow cdp Runtime evaluate "document.querySelector('main.content')
 | `Certificates` | `certificates` | Certificate cards |
 | `Profiles` | `profiles` | Provisioning profiles list |
 | `Root_Certificates` | `root-certificates` | Root cert list |
+| `Copilot` | Open via FAB button (bottom-left) | Copilot overlay with suggestions |
 
 ### Dialogs (open from toolbar or card buttons)
 

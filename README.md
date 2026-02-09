@@ -206,6 +206,13 @@ MAUI Sherpa is a desktop application for **macOS** and **Windows** that helps ma
 
 </details>
 
+<details>
+<summary><strong>🤖 GitHub Copilot</strong></summary>
+
+![Copilot Overlay](docs/screenshots/MAUI.Sherpa_Copilot.png)
+
+</details>
+
 ## 🚀 Getting Started
 
 ### Prerequisites

@@ -1079,6 +1079,8 @@ else
         resize: none;
         min-height: 44px;
         max-height: 120px;
+        background: var(--input-bg, var(--card-bg));
+        color: var(--text-primary);
     }
 
     .chat-input textarea:focus {
@@ -1891,6 +1893,11 @@ else
 
     .theme-dark .chat-container {
         background: var(--card-bg);
+    }
+
+    .theme-dark .login-badge {
+        background: rgba(99, 102, 241, 0.2);
+        color: #a78bfa;
     }
 </style>
 
