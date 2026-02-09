@@ -5,6 +5,7 @@
 @inject ISettingsMigrationService MigrationService
 @inject IAdbDeviceWatcherService DeviceWatcher
 @inject ILoggingService Logger
+@inject IEncryptedSettingsService SettingsService
 @inject IJSRuntime JS
 @implements IDisposable
 
@@ -67,6 +68,15 @@
                 <i class="fas fa-shield-alt nav-icon"></i>
                 <span>Root Certificates</span>
             </NavLink>
+
+            @if (isDebugBuild && !isDemoMode)
+            {
+                <div class="nav-section"><i class="fas fa-flask nav-section-icon"></i> Development</div>
+                <NavLink class="nav-item" href="debug">
+                    <i class="fas fa-bug nav-icon"></i>
+                    <span>Debug UI</span>
+                </NavLink>
+            }
         </div>
     </nav>
     <main class="content">
@@ -97,6 +107,13 @@
 
 @code {
     private string ThemeClass => ThemeService.IsDarkMode ? "theme-dark" : "theme-light";
+    private bool isDemoMode;
+
+#if DEBUG
+    private bool isDebugBuild = true;
+#else
+    private bool isDebugBuild = false;
+#endif
 
     protected override void OnInitialized()
     {
@@ -118,6 +135,9 @@
 
             // Start watching for ADB device changes
             _ = DeviceWatcher.StartAsync();
+
+            // Load demo mode setting
+            _ = LoadDemoModeAsync();
         }
     }
 
@@ -135,6 +155,17 @@
         {
             Logger.LogError($"Settings migration failed: {ex.Message}", ex);
         }
+    }
+
+    private async Task LoadDemoModeAsync()
+    {
+        try
+        {
+            var settings = await SettingsService.GetSettingsAsync();
+            isDemoMode = settings.Preferences.DemoMode;
+            await InvokeAsync(StateHasChanged);
+        }
+        catch { }
     }
 
     private async void OnThemeChanged()

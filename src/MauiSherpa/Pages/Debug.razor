@@ -1,0 +1,519 @@
+@page "/debug"
+@using MauiSherpa.Core.Interfaces
+@using MauiSherpa.Services
+@inject IProcessModalService ProcessModal
+@inject IOperationModalService OperationModal
+@inject IMultiOperationModalService MultiOpModal
+@inject IAlertService AlertService
+@inject IDialogService DialogService
+@inject BlazorToastService ToastService
+
+<div class="page-header">
+    <div class="page-title-row">
+        <h1><i class="fa-solid fa-bug"></i> Debug UI Testing</h1>
+    </div>
+    <p class="page-description">Test modals, dialogs, toasts, and other UI components with simulated operations.</p>
+</div>
+
+<div class="debug-sections">
+
+    <!-- Process Execution Modal -->
+    <div class="debug-section">
+        <h2><i class="fa-solid fa-terminal"></i> Process Execution Modal</h2>
+        <p class="section-description">Run shell processes with terminal output streaming.</p>
+        <div class="debug-card">
+            <div class="button-grid">
+                <button class="btn btn-primary" @onclick="ProcessSuccess">
+                    <i class="fa-solid fa-check"></i> Successful Process
+                </button>
+                <button class="btn btn-danger" @onclick="ProcessFailure">
+                    <i class="fa-solid fa-xmark"></i> Failed Process
+                </button>
+                <button class="btn btn-primary" @onclick="ProcessLongRunning">
+                    <i class="fa-solid fa-clock"></i> Long-Running (10s)
+                </button>
+                <button class="btn btn-warning" @onclick="ProcessCancellable">
+                    <i class="fa-solid fa-ban"></i> Cancellable (30s)
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Operation Modal -->
+    <div class="debug-section">
+        <h2><i class="fa-solid fa-gear"></i> Operation Modal</h2>
+        <p class="section-description">Single operations with progress, logging, and cancellation support.</p>
+        <div class="debug-card">
+            <div class="button-grid">
+                <button class="btn btn-primary" @onclick="OperationWithProgress">
+                    <i class="fa-solid fa-bars-progress"></i> With Progress
+                </button>
+                <button class="btn btn-danger" @onclick="OperationFailure">
+                    <i class="fa-solid fa-xmark"></i> Failure
+                </button>
+                <button class="btn btn-primary" @onclick="OperationIndeterminate">
+                    <i class="fa-solid fa-spinner"></i> Indeterminate
+                </button>
+                <button class="btn btn-warning" @onclick="OperationCancellable">
+                    <i class="fa-solid fa-ban"></i> Cancellable
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Multi-Operation Modal -->
+    <div class="debug-section">
+        <h2><i class="fa-solid fa-list-check"></i> Multi-Operation Modal</h2>
+        <p class="section-description">Batch operations with selection, per-item progress, and mixed results.</p>
+        <div class="debug-card">
+            <div class="button-grid">
+                <button class="btn btn-primary" @onclick="MultiOpAllSucceed">
+                    <i class="fa-solid fa-check-double"></i> All Succeed
+                </button>
+                <button class="btn btn-danger" @onclick="MultiOpMixed">
+                    <i class="fa-solid fa-shuffle"></i> Mixed Results
+                </button>
+                <button class="btn btn-primary" @onclick="MultiOpToggleable">
+                    <i class="fa-solid fa-toggle-on"></i> Toggleable Items
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notifications -->
+    <div class="debug-section">
+        <h2><i class="fa-solid fa-bell"></i> Toast Notifications</h2>
+        <p class="section-description">Transient notification messages at various severity levels.</p>
+        <div class="debug-card">
+            <div class="button-grid">
+                <button class="btn btn-success" @onclick='() => ToastService.ShowSuccess("Operation completed successfully!")'>
+                    <i class="fa-solid fa-check"></i> Success Toast
+                </button>
+                <button class="btn btn-info" @onclick='() => ToastService.ShowInfo("Here is some useful information.")'>
+                    <i class="fa-solid fa-info"></i> Info Toast
+                </button>
+                <button class="btn btn-warning" @onclick='() => ToastService.ShowWarning("Something might need attention.")'>
+                    <i class="fa-solid fa-triangle-exclamation"></i> Warning Toast
+                </button>
+                <button class="btn btn-danger" @onclick='() => ToastService.ShowError("An error occurred during the operation.")'>
+                    <i class="fa-solid fa-circle-exclamation"></i> Error Toast
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Confirmation Dialogs -->
+    <div class="debug-section">
+        <h2><i class="fa-solid fa-circle-question"></i> Confirmation Dialogs</h2>
+        <p class="section-description">Native confirmation and alert dialogs.</p>
+        <div class="debug-card">
+            <div class="button-grid">
+                <button class="btn btn-primary" @onclick="ShowSimpleConfirm">
+                    <i class="fa-solid fa-question"></i> Simple Confirm
+                </button>
+                <button class="btn btn-danger" @onclick="ShowDestructiveConfirm">
+                    <i class="fa-solid fa-trash"></i> Destructive Confirm
+                </button>
+                <button class="btn btn-primary" @onclick="ShowAlert">
+                    <i class="fa-solid fa-circle-info"></i> Alert Dialog
+                </button>
+            </div>
+            @if (lastConfirmResult != null)
+            {
+                <div class="result-display">
+                    <span class="result-label">Last result:</span>
+                    <span class="result-value @(lastConfirmResult == true ? "text-success" : "text-danger")">
+                        @(lastConfirmResult == true ? "Confirmed ✓" : "Cancelled ✗")
+                    </span>
+                </div>
+            }
+        </div>
+    </div>
+
+    <!-- Loading & Input Dialogs -->
+    <div class="debug-section">
+        <h2><i class="fa-solid fa-keyboard"></i> Loading &amp; Input Dialogs</h2>
+        <p class="section-description">Loading indicators, text input dialogs, and clipboard operations.</p>
+        <div class="debug-card">
+            <div class="button-grid">
+                <button class="btn btn-primary" @onclick="ShowLoading">
+                    <i class="fa-solid fa-hourglass-half"></i> Loading (3s)
+                </button>
+                <button class="btn btn-primary" @onclick="ShowInputDialog">
+                    <i class="fa-solid fa-i-cursor"></i> Input Dialog
+                </button>
+                <button class="btn btn-primary" @onclick="ShowClipboardCopy">
+                    <i class="fa-solid fa-clipboard"></i> Copy to Clipboard
+                </button>
+            </div>
+            @if (lastInputResult != null)
+            {
+                <div class="result-display">
+                    <span class="result-label">Last input:</span>
+                    <span class="result-value">"@lastInputResult"</span>
+                </div>
+            }
+        </div>
+    </div>
+
+</div>
+
+<style>
+    .debug-sections {
+        display: flex;
+        flex-direction: column;
+        gap: 24px;
+        padding-bottom: 32px;
+    }
+
+    .debug-section h2 {
+        font-size: 18px;
+        font-weight: 600;
+        color: var(--text-primary);
+        margin: 0 0 4px 0;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .debug-section h2 i {
+        font-size: 16px;
+        color: var(--primary);
+    }
+
+    .section-description {
+        color: var(--text-muted);
+        font-size: 13px;
+        margin: 0 0 12px 0;
+    }
+
+    .debug-card {
+        background: var(--card-bg);
+        padding: 16px 20px;
+        border-radius: 8px;
+        box-shadow: var(--card-shadow);
+    }
+
+    .button-grid {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+    }
+
+    .button-grid .btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 8px 16px;
+        font-size: 13px;
+        font-weight: 500;
+        border-radius: 6px;
+        border: none;
+        cursor: pointer;
+        transition: opacity 0.15s;
+    }
+
+    .button-grid .btn:hover {
+        opacity: 0.85;
+    }
+
+    .btn-primary { background: var(--primary); color: white; }
+    .btn-success { background: var(--success, #10b981); color: white; }
+    .btn-warning { background: var(--warning, #f59e0b); color: white; }
+    .btn-danger { background: var(--danger, #ef4444); color: white; }
+    .btn-info { background: var(--info, #3b82f6); color: white; }
+
+    .result-display {
+        margin-top: 12px;
+        padding: 8px 12px;
+        background: var(--bg-tertiary);
+        border-radius: 6px;
+        font-size: 13px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .result-label {
+        color: var(--text-muted);
+        font-weight: 500;
+    }
+
+    .result-value {
+        font-family: 'SF Mono', 'Fira Code', monospace;
+        color: var(--text-primary);
+    }
+
+    .text-success { color: var(--success, #10b981) !important; }
+    .text-danger { color: var(--danger, #ef4444) !important; }
+</style>
+
+@code {
+    private bool? lastConfirmResult;
+    private string? lastInputResult;
+
+    // === Process Execution Modal ===
+
+    private async Task ProcessSuccess()
+    {
+        await ProcessModal.ShowProcessAsync(new ProcessRequest(
+            "bash", ["-c", "echo 'Initializing...'; sleep 1; echo 'Loading configuration...'; sleep 1; echo 'Processing data...'; sleep 1; echo 'Done!'"],
+            Title: "Simulated Process",
+            Description: "A short process that completes successfully."
+        ));
+    }
+
+    private async Task ProcessFailure()
+    {
+        await ProcessModal.ShowProcessAsync(new ProcessRequest(
+            "bash", ["-c", "echo 'Starting process...'; sleep 1; echo 'Processing data...'; sleep 1; echo 'ERROR: Something went wrong!' >&2; exit 1"],
+            Title: "Failing Process",
+            Description: "A process that outputs text then exits with an error."
+        ));
+    }
+
+    private async Task ProcessLongRunning()
+    {
+        await ProcessModal.ShowProcessAsync(new ProcessRequest(
+            "bash", ["-c", "for i in $(seq 1 10); do echo \"[Step $i/10] Processing batch $i...\"; sleep 1; done; echo 'All batches complete!'"],
+            Title: "Long-Running Process",
+            Description: "A process that streams output over 10 seconds."
+        ));
+    }
+
+    private async Task ProcessCancellable()
+    {
+        await ProcessModal.ShowProcessAsync(new ProcessRequest(
+            "bash", ["-c", "echo 'Starting long operation...'; echo 'Press Cancel to stop.'; sleep 30; echo 'Done!'"],
+            Title: "Cancellable Process",
+            Description: "A long-running process you can cancel."
+        ));
+    }
+
+    // === Operation Modal ===
+
+    private async Task OperationWithProgress()
+    {
+        await OperationModal.RunAsync(
+            "Simulated Operation",
+            "Demonstrates progress tracking and log entries.",
+            async ctx =>
+            {
+                var steps = new[] { "Initializing", "Loading data", "Processing records", "Optimizing results", "Finalizing" };
+                for (int i = 0; i < steps.Length; i++)
+                {
+                    ctx.CancellationToken.ThrowIfCancellationRequested();
+                    ctx.SetStatus(steps[i]);
+                    ctx.SetProgress(i * 20);
+                    ctx.LogInfo($"{steps[i]}...");
+                    await Task.Delay(1200, ctx.CancellationToken);
+                }
+                ctx.SetProgress(100);
+                ctx.LogSuccess("All steps completed successfully!");
+                return true;
+            });
+    }
+
+    private async Task OperationFailure()
+    {
+        await OperationModal.RunAsync(
+            "Failing Operation",
+            "An operation that fails partway through.",
+            async ctx =>
+            {
+                ctx.SetStatus("Starting up...");
+                ctx.SetProgress(0);
+                ctx.LogInfo("Connecting to service...");
+                await Task.Delay(1000);
+
+                ctx.SetProgress(30);
+                ctx.LogInfo("Authenticating...");
+                await Task.Delay(1000);
+
+                ctx.SetProgress(60);
+                ctx.LogWarning("Connection unstable...");
+                await Task.Delay(800);
+
+                ctx.LogError("Connection lost! Unable to reach server.");
+                return false;
+            });
+    }
+
+    private async Task OperationIndeterminate()
+    {
+        await OperationModal.RunAsync(
+            "Background Sync",
+            "An operation with indeterminate progress.",
+            async ctx =>
+            {
+                var statuses = new[] { "Checking for updates...", "Downloading metadata...", "Comparing versions...", "Applying changes...", "Verifying integrity..." };
+                foreach (var status in statuses)
+                {
+                    ctx.CancellationToken.ThrowIfCancellationRequested();
+                    ctx.SetStatus(status);
+                    ctx.LogInfo(status);
+                    await Task.Delay(1500, ctx.CancellationToken);
+                }
+                ctx.LogSuccess("Sync complete!");
+                return true;
+            });
+    }
+
+    private async Task OperationCancellable()
+    {
+        await OperationModal.RunAsync(
+            "Cancellable Operation",
+            "A long operation — try pressing Cancel.",
+            async ctx =>
+            {
+                for (int i = 1; i <= 20; i++)
+                {
+                    ctx.CancellationToken.ThrowIfCancellationRequested();
+                    ctx.SetStatus($"Processing item {i} of 20...");
+                    ctx.SetProgress(i * 5);
+                    ctx.LogInfo($"Processing item {i}...");
+                    await Task.Delay(1000, ctx.CancellationToken);
+                }
+                ctx.LogSuccess("All items processed!");
+                return true;
+            },
+            canCancel: true);
+    }
+
+    // === Multi-Operation Modal ===
+
+    private async Task MultiOpAllSucceed()
+    {
+        var ops = Enumerable.Range(1, 5).Select(i => new OperationItem(
+            $"op-{i}",
+            $"Operation {i}",
+            $"Simulated task #{i}",
+            async ctx =>
+            {
+                ctx.LogInfo($"Starting operation {i}...");
+                ctx.SetStatus("Working...");
+                await Task.Delay(800 + (i * 200), ctx.CancellationToken);
+                ctx.LogSuccess($"Operation {i} completed");
+                return true;
+            }
+        ));
+        await MultiOpModal.RunAsync("Batch Operations", "All operations will succeed.", ops);
+    }
+
+    private async Task MultiOpMixed()
+    {
+        var ops = new[]
+        {
+            new OperationItem("m-1", "Download Packages", "Fetch latest packages", async ctx =>
+            {
+                ctx.LogInfo("Downloading..."); await Task.Delay(1000, ctx.CancellationToken);
+                ctx.LogSuccess("Downloaded 3 packages"); return true;
+            }),
+            new OperationItem("m-2", "Validate Checksums", "Verify file integrity", async ctx =>
+            {
+                ctx.LogInfo("Validating..."); await Task.Delay(800, ctx.CancellationToken);
+                ctx.LogError("Checksum mismatch on package 2!"); return false;
+            }),
+            new OperationItem("m-3", "Install Dependencies", "Install required libs", async ctx =>
+            {
+                ctx.LogInfo("Installing..."); await Task.Delay(1200, ctx.CancellationToken);
+                ctx.LogSuccess("All dependencies installed"); return true;
+            }),
+            new OperationItem("m-4", "Run Migrations", "Apply database schema", async ctx =>
+            {
+                ctx.LogInfo("Migrating..."); await Task.Delay(600, ctx.CancellationToken);
+                ctx.LogWarning("Migration skipped — already up to date"); return true;
+            }),
+            new OperationItem("m-5", "Deploy Service", "Push to staging", async ctx =>
+            {
+                ctx.LogInfo("Deploying..."); await Task.Delay(1000, ctx.CancellationToken);
+                ctx.LogError("Deploy failed — insufficient permissions"); return false;
+            }),
+        };
+        await MultiOpModal.RunAsync("Mixed Batch", "Some operations will fail.", ops);
+    }
+
+    private async Task MultiOpToggleable()
+    {
+        var ops = new[]
+        {
+            new OperationItem("t-1", "Update Config Files", "Refresh configuration", async ctx =>
+            {
+                ctx.LogInfo("Updating config..."); await Task.Delay(800, ctx.CancellationToken);
+                ctx.LogSuccess("Config updated"); return true;
+            }, IsEnabled: true, CanDisable: true),
+            new OperationItem("t-2", "Clear Cache", "Remove cached data", async ctx =>
+            {
+                ctx.LogInfo("Clearing cache..."); await Task.Delay(600, ctx.CancellationToken);
+                ctx.LogSuccess("Cache cleared"); return true;
+            }, IsEnabled: true, CanDisable: true),
+            new OperationItem("t-3", "Rebuild Index", "Recreate search index", async ctx =>
+            {
+                ctx.LogInfo("Rebuilding..."); await Task.Delay(1500, ctx.CancellationToken);
+                ctx.LogSuccess("Index rebuilt"); return true;
+            }, IsEnabled: false, CanDisable: true),
+            new OperationItem("t-4", "Restart Services", "Cycle all services", async ctx =>
+            {
+                ctx.LogInfo("Restarting..."); await Task.Delay(1000, ctx.CancellationToken);
+                ctx.LogSuccess("Services restarted"); return true;
+            }, IsEnabled: true, CanDisable: true),
+            new OperationItem("t-5", "Send Notifications", "Alert team members", async ctx =>
+            {
+                ctx.LogInfo("Sending..."); await Task.Delay(700, ctx.CancellationToken);
+                ctx.LogSuccess("Notifications sent"); return true;
+            }, IsEnabled: false, CanDisable: true),
+        };
+        await MultiOpModal.RunAsync("Maintenance Tasks", "Toggle items on/off before running.", ops);
+    }
+
+    // === Confirmation Dialogs ===
+
+    private async Task ShowSimpleConfirm()
+    {
+        lastConfirmResult = await AlertService.ShowConfirmAsync(
+            "Confirm Action",
+            "Are you sure you want to proceed with this action?",
+            "Yes, Proceed",
+            "Cancel");
+        StateHasChanged();
+    }
+
+    private async Task ShowDestructiveConfirm()
+    {
+        lastConfirmResult = await AlertService.ShowConfirmAsync(
+            "Delete All Data",
+            "This will permanently delete all cached data. This action cannot be undone.",
+            "Delete Everything",
+            "Keep Data");
+        StateHasChanged();
+    }
+
+    private async Task ShowAlert()
+    {
+        await AlertService.ShowAlertAsync("Information", "This is a simple alert dialog with an OK button.");
+    }
+
+    // === Loading & Input Dialogs ===
+
+    private async Task ShowLoading()
+    {
+        await DialogService.ShowLoadingAsync("Loading data, please wait...");
+        await Task.Delay(3000);
+        await DialogService.HideLoadingAsync();
+    }
+
+    private async Task ShowInputDialog()
+    {
+        lastInputResult = await DialogService.ShowInputDialogAsync(
+            "Enter a Value",
+            "Type something to test the input dialog:",
+            "Type here...");
+        StateHasChanged();
+    }
+
+    private async Task ShowClipboardCopy()
+    {
+        await DialogService.CopyToClipboardAsync("Hello from Debug page! 🐛");
+        await AlertService.ShowToastAsync("Copied to clipboard!");
+    }
+}
