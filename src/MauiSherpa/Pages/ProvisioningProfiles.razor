@@ -197,7 +197,7 @@
 <CISecretsWizard @bind-IsVisible="showCISecretsWizard" />
 
 <style>
-    h1 { margin-bottom: 20px; font-size: 28px; color: var(--text-primary); }
+    h1 { margin-bottom: 20px; font-size: 1.75rem; color: var(--text-primary); }
 
     .toolbar { margin-bottom: 16px; display: flex; gap: 12px; align-items: center; }
     .toolbar-spacer { flex: 1; }
@@ -234,7 +234,7 @@
         padding: 10px 36px 10px 36px;
         border: 1px solid var(--border-color);
         border-radius: 6px;
-        font-size: 14px;
+        font-size: 0.875rem;
         box-sizing: border-box;
         background: var(--input-bg);
         color: var(--text-primary);
@@ -253,7 +253,7 @@
         bottom: 0;
         display: flex;
         align-items: center;
-        font-size: 14px;
+        font-size: 0.875rem;
         opacity: 0.5;
         color: var(--text-muted);
         pointer-events: none;
@@ -276,7 +276,7 @@
         border-radius: 50%;
         width: 20px;
         height: 20px;
-        font-size: 14px;
+        font-size: 0.875rem;
         cursor: pointer;
         display: flex;
         align-items: center;
@@ -296,7 +296,7 @@
         padding: 8px 12px;
         border: 1px solid var(--border-color);
         border-radius: 6px;
-        font-size: 13px;
+        font-size: 0.8125rem;
         background: var(--card-bg);
         color: var(--text-primary);
         cursor: pointer;
@@ -313,7 +313,7 @@
         background: none;
         border: 1px solid var(--border-color);
         border-radius: 6px;
-        font-size: 13px;
+        font-size: 0.8125rem;
         color: var(--text-muted);
         cursor: pointer;
     }
@@ -324,7 +324,7 @@
     }
 
     .results-info {
-        font-size: 13px;
+        font-size: 0.8125rem;
         color: var(--text-muted);
         margin-bottom: 12px;
     }
@@ -333,20 +333,20 @@
         padding: 10px 20px; 
         border: none; 
         border-radius: 6px; 
-        font-size: 14px; 
+        font-size: 0.875rem; 
         cursor: pointer; 
         transition: all 0.2s ease;
         display: inline-flex;
         align-items: center;
         gap: 6px;
     }
-    .btn i { font-size: 12px; }
+    .btn i { font-size: 0.75rem; }
     .btn-icon {
         width: 32px; height: 32px; padding: 0;
         display: inline-flex; align-items: center; justify-content: center;
-        border-radius: 6px; font-size: 13px;
+        border-radius: 6px; font-size: 0.8125rem;
     }
-    .btn-icon i { font-size: 13px; margin: 0; }
+    .btn-icon i { font-size: 0.8125rem; margin: 0; }
     .btn-primary { background-color: var(--accent-primary); color: white; }
     .btn-primary:hover:not(:disabled) { background-color: var(--accent-primary-hover); }
     .btn-secondary { background-color: #a0aec0; color: white; }
@@ -355,7 +355,7 @@
     .btn-danger:hover:not(:disabled) { background-color: var(--accent-danger); }
     .btn-success { background-color: var(--accent-success); color: white; }
     .btn-success:hover:not(:disabled) { background-color: var(--accent-success-hover); }
-    .btn-sm { padding: 6px 12px; font-size: 12px; }
+    .btn-sm { padding: 6px 12px; font-size: 0.75rem; }
     .btn:disabled { opacity: 0.6; cursor: not-allowed; }
 
     /* ── Dropdown ── */
@@ -370,12 +370,12 @@
         display: flex; align-items: center; gap: 8px;
         width: 100%; padding: 7px 14px;
         border: none; background: none;
-        color: var(--text-primary); font-size: 13px;
+        color: var(--text-primary); font-size: 0.8125rem;
         cursor: pointer; text-align: left; transition: background 0.1s;
     }
     .prof-dropdown-item:hover:not(:disabled) { background: var(--bg-tertiary); }
     .prof-dropdown-item:disabled { opacity: 0.4; cursor: not-allowed; }
-    .prof-dropdown-item i { font-size: 12px; width: 14px; text-align: center; color: var(--text-secondary); }
+    .prof-dropdown-item i { font-size: 0.75rem; width: 14px; text-align: center; color: var(--text-secondary); }
     .prof-dropdown-item.danger { color: var(--accent-danger, #e53e3e); }
     .prof-dropdown-item.danger i { color: var(--accent-danger, #e53e3e); }
     .prof-dropdown-divider { height: 1px; background: var(--border-color); margin: 4px 0; }
@@ -396,20 +396,20 @@
     .profile-card.invalid { border-left-color: #f56565; opacity: 0.7; }
     .profile-card.expiring { border-left-color: var(--accent-warning); }
 
-    .profile-icon { font-size: 36px; color: #6b46c1; }
-    .profile-icon i { font-size: 28px; }
+    .profile-icon { font-size: 2.25rem; color: #6b46c1; }
+    .profile-icon i { font-size: 1.75rem; }
     .profile-details { flex: 1; }
-    .profile-name { font-weight: 600; font-size: 16px; color: var(--text-primary); }
+    .profile-name { font-weight: 600; font-size: 1rem; color: var(--text-primary); }
     .profile-uuid { 
         font-family: monospace; 
-        font-size: 11px; 
+        font-size: 0.6875rem; 
         color: #a0aec0; 
         margin-top: 4px;
         display: flex;
         align-items: center;
         gap: 8px;
     }
-    .profile-expiry { font-size: 13px; color: var(--text-muted); margin-top: 8px; }
+    .profile-expiry { font-size: 0.8125rem; color: var(--text-muted); margin-top: 8px; }
     .profile-badges { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
 
     .profile-actions { display: flex; gap: 4px; align-items: center; }
@@ -420,7 +420,7 @@
         color: #a0aec0;
         cursor: pointer;
         padding: 2px 6px;
-        font-size: 12px;
+        font-size: 0.75rem;
         border-radius: 4px;
         transition: all 0.15s;
         flex-shrink: 0;
@@ -430,7 +430,7 @@
         background: var(--bg-hover);
     }
 
-    .badge { padding: 2px 10px; border-radius: 12px; font-size: 12px; font-weight: 500; }
+    .badge { padding: 2px 10px; border-radius: 12px; font-size: 0.75rem; font-weight: 500; }
     .badge-type { background: #faf5ff; color: #6b46c1; }
     .badge-platform { background: #bee3f8; color: #2c5282; }
     .badge-valid { background: var(--status-success-bg); color: var(--status-success-text); }
@@ -441,8 +441,8 @@
     .empty-state { background: var(--card-bg); border-radius: 8px; padding: 60px 40px; text-align: center; box-shadow: var(--card-shadow); }
     .empty-icon { font-size: 48px; margin-bottom: 16px; color: #a0aec0; }
     .empty-icon i { font-size: 48px; }
-    .empty-title { font-size: 18px; font-weight: 600; color: var(--text-primary); margin-bottom: 8px; }
-    .empty-description { color: var(--text-muted); font-size: 14px; display: flex; flex-direction: column; align-items: center; gap: 16px; }
+    .empty-title { font-size: 1.125rem; font-weight: 600; color: var(--text-primary); margin-bottom: 8px; }
+    .empty-description { color: var(--text-muted); font-size: 0.875rem; display: flex; flex-direction: column; align-items: center; gap: 16px; }
     .btn-empty-cta { margin-top: 8px; }
 </style>
 

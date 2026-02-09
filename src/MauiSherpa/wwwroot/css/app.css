@@ -901,7 +901,7 @@ pre {
 
 .warning-banner i {
     color: var(--accent-warning);
-    font-size: 20px;
+    font-size: 1.25rem;
     flex-shrink: 0;
 }
 
