@@ -1,6 +1,7 @@
 @inherits LayoutComponentBase
 @using MauiSherpa.Core.Interfaces
 @inject IThemeService ThemeService
+@inject IEncryptedSettingsService EncryptedSettings
 @inject ISplashService SplashService
 @inject ISettingsMigrationService MigrationService
 @inject IAdbDeviceWatcherService DeviceWatcher
@@ -132,6 +133,9 @@
             // Sync theme class to body for modals rendered outside layout
             _ = SyncBodyThemeAsync();
             
+            // Apply persisted font scale
+            _ = SyncFontScaleAsync();
+            
             // Run settings migration in background
             _ = RunMigrationAsync();
 
@@ -151,6 +155,13 @@
             {
                 Logger.LogInformation("Running settings migration...");
                 await MigrationService.MigrateAsync();
+            }
+            
+            // Restore persisted font scale
+            var settings = await EncryptedSettings.GetSettingsAsync();
+            if (Math.Abs(settings.Preferences.FontScale - 1.0) > 0.001)
+            {
+                ThemeService.SetFontScale(settings.Preferences.FontScale);
             }
         }
         catch (Exception ex)
@@ -176,6 +187,7 @@
         {
             StateHasChanged();
             await SyncBodyThemeAsync();
+            await SyncFontScaleAsync();
         });
     }
 
@@ -185,6 +197,16 @@
         {
             var cls = ThemeService.IsDarkMode ? "theme-dark" : "theme-light";
             await JS.InvokeVoidAsync("eval", $"document.body.className = '{cls}'");
+        }
+        catch { }
+    }
+
+    private async Task SyncFontScaleAsync()
+    {
+        try
+        {
+            var sizePx = 16.0 * ThemeService.FontScale;
+            await JS.InvokeVoidAsync("eval", $"document.documentElement.style.fontSize = '{sizePx:F1}px'");
         }
         catch { }
     }
@@ -252,7 +274,7 @@
 
     .nav-section {
         padding: 20px 20px 8px 20px;
-        font-size: 11px;
+        font-size: 0.6875rem;
         font-weight: 600;
         text-transform: uppercase;
         color: #718096;
@@ -263,7 +285,7 @@
     }
     
     .nav-section-icon {
-        font-size: 14px;
+        font-size: 0.875rem;
     }
 
     .nav-item {
@@ -280,7 +302,7 @@
     .nav-icon {
         width: 18px;
         text-align: center;
-        font-size: 14px;
+        font-size: 0.875rem;
         opacity: 0.8;
     }
 

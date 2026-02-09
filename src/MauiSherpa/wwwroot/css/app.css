@@ -353,7 +353,7 @@ pre {
 }
 
 .loading-title {
-    font-size: 20px;
+    font-size: 1.25rem;
     font-weight: 600;
     color: var(--text-primary);
     margin-bottom: 8px;
@@ -361,7 +361,7 @@ pre {
 
 .loading-description {
     color: var(--text-muted);
-    font-size: 14px;
+    font-size: 0.875rem;
 }
 
 @keyframes pulse {
@@ -389,7 +389,7 @@ pre {
 }
 
 .empty-title {
-    font-size: 18px;
+    font-size: 1.125rem;
     font-weight: 600;
     color: var(--text-primary);
     margin-bottom: 8px;
@@ -397,7 +397,7 @@ pre {
 
 .empty-description {
     color: var(--text-muted);
-    font-size: 14px;
+    font-size: 0.875rem;
     line-height: 1.6;
 }
 
@@ -822,7 +822,7 @@ pre {
 
 .dialog-header h2 {
     margin: 0;
-    font-size: 18px;
+    font-size: 1.125rem;
     font-weight: 600;
     color: var(--text-primary);
 }
@@ -878,12 +878,12 @@ pre {
 
 .selection-item .item-name {
     font-weight: 500;
-    font-size: 14px;
+    font-size: 0.875rem;
     color: var(--text-primary);
 }
 
 .selection-item .item-detail {
-    font-size: 12px;
+    font-size: 0.75rem;
     color: var(--text-muted);
     margin-top: 2px;
 }
@@ -916,7 +916,7 @@ pre {
     padding: 8px 12px;
     background: var(--status-success-bg);
     border-radius: 6px;
-    font-size: 13px;
+    font-size: 0.8125rem;
     color: var(--status-success-text);
     display: flex;
     align-items: center;
