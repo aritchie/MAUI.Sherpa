@@ -41,6 +41,21 @@ The subtitle is a short phrase in quotes that captures the theme of the release 
 
 Pick something that metaphorically matches the nature of the changes (e.g., a stability release = "Acclimatization Day", a big feature drop = "Crossing the Icefall").
 
+## Pacing the Storyline
+
+The mountaineering narrative is a long expedition — don't rush to the summit! Each release should advance the story only as much as the scope of changes warrants.
+
+**Version type → narrative pacing:**
+- **Major versions (1.0, 2.0)** — Can represent reaching a new camp or a major milestone on the mountain. Big leaps in the story.
+- **Minor versions (0.2.0, 0.3.0)** — A meaningful day on the trail. New terrain, new gear deployed, a real step forward.
+- **Patch versions (0.2.1, 0.2.2)** — A quick rest stop, a gear adjustment, checking the map. The expedition hasn't moved far — just a small moment on the same stretch of trail. Don't advance the plot.
+
+**Rules of thumb:**
+- Patch releases should reuse the same "camp" or stretch of trail. Don't leave a camp in a patch.
+- Save dramatic moments (storms, icefall crossings, summit pushes) for major feature releases.
+- It's fine for multiple patches to share similar vibes — the team is still at the same altitude.
+- The closing line should hint at what's ahead without actually getting there.
+
 ## Category Headings
 
 Use the emoji prefix on category headings:
