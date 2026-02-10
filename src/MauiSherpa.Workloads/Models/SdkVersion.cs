@@ -70,5 +70,25 @@ public record SdkVersion
         };
     }
 
+    /// <summary>
+    /// Tries to parse an SDK version string into an SdkVersion object.
+    /// </summary>
+    /// <param name="version">The version string to parse.</param>
+    /// <param name="sdkVersion">The parsed SdkVersion if successful, null otherwise.</param>
+    /// <returns>True if parsing was successful, false otherwise.</returns>
+    public static bool TryParse(string version, out SdkVersion? sdkVersion)
+    {
+        try
+        {
+            sdkVersion = Parse(version);
+            return true;
+        }
+        catch
+        {
+            sdkVersion = null;
+            return false;
+        }
+    }
+
     public override string ToString() => Version;
 }
