@@ -962,7 +962,7 @@
     
     private async Task LoadSyncStatuses()
     {
-        if (CloudSecretsService.ActiveProvider == null || certificates.Count == 0)
+        if (certificates.Count == 0)
         {
             syncStatuses.Clear();
             return;
@@ -1038,7 +1038,7 @@
             {
                 extension = ".p12";
                 var matchingIdentity = localIdentities?.FirstOrDefault(i => 
-                    i.SerialNumber?.Equals(cert.SerialNumber, StringComparison.OrdinalIgnoreCase) == true);
+                    SerialsMatch(i.SerialNumber, cert.SerialNumber));
                 
                 if (matchingIdentity == null)
                 {
@@ -1171,7 +1171,7 @@
             // Find the matching local identity
             var identities = await LocalCertificateService.GetSigningIdentitiesAsync();
             var matchingIdentity = identities.FirstOrDefault(i => 
-                i.SerialNumber?.Equals(cert.SerialNumber, StringComparison.OrdinalIgnoreCase) == true);
+                SerialsMatch(i.SerialNumber, cert.SerialNumber));
             
             if (matchingIdentity == null)
             {
@@ -1328,7 +1328,7 @@
                 {
                     // Find matching local identity
                     var identity = identities.FirstOrDefault(i =>
-                        i.SerialNumber?.Equals(cert.SerialNumber, StringComparison.OrdinalIgnoreCase) == true);
+                        SerialsMatch(i.SerialNumber, cert.SerialNumber));
                     
                     if (identity == null)
                     {
@@ -1389,6 +1389,9 @@
             StateHasChanged();
         }
     }
+
+    private static bool SerialsMatch(string? a, string? b)
+        => (a ?? "").TrimStart('0').Equals((b ?? "").TrimStart('0'), StringComparison.OrdinalIgnoreCase);
 
     private string FormatCertType(string? certType)
     {
@@ -1531,7 +1534,7 @@
             Logger.LogInformation($"Looking for identity with serial: {cert.SerialNumber}");
             var identities = await LocalCertificateService.GetSigningIdentitiesAsync();
             var matchingIdentity = identities.FirstOrDefault(i => 
-                i.SerialNumber?.Equals(cert.SerialNumber, StringComparison.OrdinalIgnoreCase) == true);
+                SerialsMatch(i.SerialNumber, cert.SerialNumber));
             
             if (matchingIdentity == null)
             {

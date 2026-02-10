@@ -353,8 +353,8 @@ public class AppleConnectService : IAppleConnectService
                 .Select(c => new AppleCertificate(
                     c.Id,
                     c.Attributes?.DisplayName ?? c.Attributes?.Name ?? "",
-                    c.Attributes?.CertificateType.ToString() ?? "DEVELOPMENT",
-                    c.Attributes?.Platform.ToString() ?? "",
+                    c.Attributes?.CertificateTypeValue ?? c.Attributes?.CertificateType.ToString() ?? "DEVELOPMENT",
+                    c.Attributes?.PlatformValue ?? c.Attributes?.Platform.ToString() ?? "",
                     DateTime.UtcNow.AddYears(1), // CertificateAttributes doesn't have ExpirationDate directly
                     c.Attributes?.SerialNumber ?? ""))
                 .ToList();
@@ -397,7 +397,7 @@ public class AppleConnectService : IAppleConnectService
             var cn = commonName ?? Environment.MachineName;
             
             // Create certificate with CSR
-            var response = await client.CreateCertificateWithSigningRequestAsync(cn, certType);
+            var response = await client.CreateCertificateAsync(cn, certType);
             
             // Convert to X509Certificate2 to get details and export as PFX
             var certContent = response.Data.Attributes.CertificateContent;

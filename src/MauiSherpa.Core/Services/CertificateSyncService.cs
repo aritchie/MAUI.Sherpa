@@ -341,7 +341,8 @@ public class CertificateSyncService : ICertificateSyncService
             if (char.IsLetterOrDigit(c))
                 sb.Append(char.ToUpperInvariant(c));
         }
-        return sb.ToString();
+        // Strip leading zeros — local keychain may include them but API may not
+        return sb.ToString().TrimStart('0');
     }
 
     private async Task<bool> ImportP12ToKeychainAsync(
