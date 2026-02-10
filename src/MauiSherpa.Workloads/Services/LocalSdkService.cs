@@ -32,18 +32,28 @@ public class LocalSdkService : ILocalSdkService
     /// <inheritdoc />
     public string? GetDotNetSdkPath()
     {
+        _logger.LogDebug("Starting SDK path detection");
+        
         // Try common installation paths
-        var possiblePaths = GetPossibleDotNetPaths();
+        var possiblePaths = GetPossibleDotNetPaths().ToList();
+        _logger.LogDebug("Checking {Count} possible paths", possiblePaths.Count);
 
         foreach (var path in possiblePaths)
         {
-            if (Directory.Exists(path) && Directory.Exists(Path.Combine(path, "sdk")))
+            _logger.LogDebug("Checking path: {Path}", path);
+            
+            if (IsValidSdkPath(path))
+            {
+                _logger.LogInformation("Found valid SDK at: {Path}", path);
                 return path;
+            }
         }
 
         // Fallback: try to find dotnet executable and get its location
         try
         {
+            _logger.LogDebug("Attempting fallback: locating dotnet executable");
+            
             var startInfo = new ProcessStartInfo
             {
                 FileName = RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? "where" : "which",
@@ -61,17 +71,23 @@ public class LocalSdkService : ILocalSdkService
 
                 if (!string.IsNullOrEmpty(output))
                 {
+                    _logger.LogDebug("Found dotnet executable at: {Path}", output);
+                    
                     var dotnetDir = Path.GetDirectoryName(output);
-                    if (dotnetDir != null && Directory.Exists(Path.Combine(dotnetDir, "sdk")))
+                    if (dotnetDir != null && IsValidSdkPath(dotnetDir))
+                    {
+                        _logger.LogInformation("Found valid SDK via dotnet executable at: {Path}", dotnetDir);
                         return dotnetDir;
+                    }
                 }
             }
         }
-        catch
+        catch (Exception ex)
         {
-            // Ignore errors finding dotnet
+            _logger.LogWarning(ex, "Error finding dotnet executable");
         }
 
+        _logger.LogWarning("No valid SDK path found");
         return null;
     }
 
@@ -250,22 +266,91 @@ public class LocalSdkService : ILocalSdkService
         }
     }
 
+    /// <summary>
+    /// Validates that a path contains a valid .NET SDK installation.
+    /// </summary>
+    /// <param name="path">The path to validate.</param>
+    /// <returns>True if the path contains a valid SDK installation, false otherwise.</returns>
+    private bool IsValidSdkPath(string path)
+    {
+        if (!Directory.Exists(path))
+        {
+            _logger.LogDebug("Path does not exist: {Path}", path);
+            return false;
+        }
+
+        var sdkPath = Path.Combine(path, "sdk");
+        if (!Directory.Exists(sdkPath))
+        {
+            _logger.LogDebug("SDK directory does not exist: {Path}", sdkPath);
+            return false;
+        }
+
+        // Check if sdk directory contains any valid SDK version directories
+        try
+        {
+            var sdkDirs = Directory.GetDirectories(sdkPath);
+            if (sdkDirs.Length == 0)
+            {
+                _logger.LogDebug("SDK directory is empty: {Path}", sdkPath);
+                return false;
+            }
+
+            // Verify at least one directory is a valid SDK version
+            var hasValidSdk = false;
+            foreach (var dir in sdkDirs)
+            {
+                var versionDir = Path.GetFileName(dir);
+                
+                // Try to parse as an SDK version
+                if (SdkVersion.TryParse(versionDir, out _))
+                {
+                    // Additional validation: check for key SDK files
+                    var dotnetDll = Path.Combine(dir, "dotnet.dll");
+                    if (File.Exists(dotnetDll))
+                    {
+                        _logger.LogDebug("Found valid SDK version: {Version} at {Path}", versionDir, dir);
+                        hasValidSdk = true;
+                        break;
+                    }
+                }
+            }
+
+            if (!hasValidSdk)
+            {
+                _logger.LogDebug("No valid SDK versions found in: {Path}", sdkPath);
+            }
+
+            return hasValidSdk;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Error validating SDK path: {Path}", path);
+            return false;
+        }
+    }
+
+    /// <summary>
+    /// Returns possible .NET SDK install paths in priority order based on the official
+    /// dotnet/designs install-locations specification:
+    /// https://github.com/dotnet/designs/blob/main/accepted/2020/install-locations.md
+    /// </summary>
     private static IEnumerable<string> GetPossibleDotNetPaths()
     {
-        // Check environment variables for explicit dotnet root path (highest priority)
+        // 1. DOTNET_ROOT env vars — highest priority (explicit user override)
         foreach (var envPath in GetDotNetRootFromEnvironment())
         {
             yield return envPath;
         }
         
-        // Check current working directory for local .dotnet installation (all platforms)
-        yield return Path.Combine(Environment.CurrentDirectory, ".dotnet");
+        // 2. Registered install locations (macOS/Linux: /etc/dotnet/install_location files,
+        //    Windows: registry) — the official mechanism for custom global installs
+        foreach (var registeredPath in GetRegisteredInstallLocations())
+        {
+            yield return registeredPath;
+        }
         
-        // Check user's home directory for .dotnet installation (all platforms)
-        var home = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
-        if (!string.IsNullOrEmpty(home))
-            yield return Path.Combine(home, ".dotnet");
-        
+        // 3. Default global install locations (platform-specific)
         if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
         {
             var programFiles = Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles);
@@ -276,19 +361,132 @@ public class LocalSdkService : ILocalSdkService
             if (!string.IsNullOrEmpty(programFilesX86))
                 yield return Path.Combine(programFilesX86, "dotnet");
             
+            // VS private install location
             var localAppData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
-            yield return Path.Combine(localAppData, "Microsoft", "dotnet");
+            if (!string.IsNullOrEmpty(localAppData))
+                yield return Path.Combine(localAppData, "Microsoft", "dotnet");
         }
         else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
         {
             yield return "/usr/local/share/dotnet";
+            // x64-on-arm64 via Rosetta (the .pkg installer registers this in install_location)
+            yield return "/usr/local/share/dotnet/x64";
             yield return "/opt/homebrew/opt/dotnet/libexec";
         }
         else // Linux
         {
             yield return "/usr/share/dotnet";
             yield return "/usr/local/share/dotnet";
+            yield return "/usr/lib/dotnet"; // Fedora/RHEL
         }
+        
+        // 4. Project-local .dotnet installation (repo-local SDK pinning)
+        yield return Path.Combine(Environment.CurrentDirectory, ".dotnet");
+        
+        // 5. User home .dotnet — lowest priority; typically just cache/settings,
+        //    only a real SDK if installed via dotnet-install.sh --install-dir ~/.dotnet
+        var home = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+        if (!string.IsNullOrEmpty(home))
+            yield return Path.Combine(home, ".dotnet");
+    }
+
+    /// <summary>
+    /// Reads registered install locations from platform-specific configuration.
+    /// macOS/Linux: /etc/dotnet/install_location_&lt;arch&gt; and /etc/dotnet/install_location
+    /// Windows: HKLM\SOFTWARE\dotnet\Setup\InstalledVersions\&lt;arch&gt;\InstallLocation
+    /// </summary>
+    private static IEnumerable<string> GetRegisteredInstallLocations()
+    {
+        if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+        {
+            // Windows: read from registry (32-bit view)
+            foreach (var path in GetWindowsRegistryInstallLocation())
+                yield return path;
+        }
+        else
+        {
+            // macOS/Linux: read from /etc/dotnet/install_location files
+            var arch = RuntimeInformation.ProcessArchitecture switch
+            {
+                Architecture.X64 => "x64",
+                Architecture.Arm64 => "arm64",
+                Architecture.Arm => "arm",
+                Architecture.X86 => "x86",
+                _ => null
+            };
+
+            // Per-architecture file first (higher priority)
+            if (arch != null)
+            {
+                var archFile = $"/etc/dotnet/install_location_{arch}";
+                var archPath = ReadInstallLocationFile(archFile);
+                if (archPath != null)
+                    yield return archPath;
+            }
+
+            // Generic install_location file
+            var genericPath = ReadInstallLocationFile("/etc/dotnet/install_location");
+            if (genericPath != null)
+                yield return genericPath;
+        }
+    }
+
+    /// <summary>
+    /// Reads the first line of an install_location file, which contains the absolute
+    /// path to the .NET install root.
+    /// </summary>
+    private static string? ReadInstallLocationFile(string filePath)
+    {
+        try
+        {
+            if (!File.Exists(filePath))
+                return null;
+            
+            var line = File.ReadLines(filePath).FirstOrDefault()?.Trim();
+            return string.IsNullOrEmpty(line) ? null : line;
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    /// <summary>
+    /// Reads the .NET install location from the Windows registry.
+    /// </summary>
+    private static IEnumerable<string> GetWindowsRegistryInstallLocation()
+    {
+        if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+            return [];
+
+        var arch = RuntimeInformation.ProcessArchitecture switch
+        {
+            Architecture.X64 => "x64",
+            Architecture.X86 => "x86",
+            Architecture.Arm64 => "arm64",
+            Architecture.Arm => "arm",
+            _ => null
+        };
+
+        if (arch == null)
+            return [];
+
+        try
+        {
+            // HKLM\SOFTWARE\dotnet\Setup\InstalledVersions\<arch>\InstallLocation
+            // Must use 32-bit registry view per the design spec
+            using var key = Microsoft.Win32.Registry.LocalMachine.OpenSubKey(
+                $@"SOFTWARE\dotnet\Setup\InstalledVersions\{arch}");
+            var value = key?.GetValue("InstallLocation") as string;
+            if (!string.IsNullOrEmpty(value))
+                return [value];
+        }
+        catch
+        {
+            // Registry access may fail on non-Windows or without permissions
+        }
+
+        return [];
     }
 
     private static IEnumerable<string> GetDotNetRootFromEnvironment()

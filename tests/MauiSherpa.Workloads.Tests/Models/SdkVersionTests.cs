@@ -91,4 +91,35 @@ public class SdkVersionTests
         // Assert
         result.Should().Be("10.0.100");
     }
+
+    [Theory]
+    [InlineData("10.0.100")]
+    [InlineData("9.0.105")]
+    [InlineData("8.0.300-preview.1")]
+    public void TryParse_ValidVersion_ReturnsTrue(string version)
+    {
+        // Act
+        var success = SdkVersion.TryParse(version, out var result);
+
+        // Assert
+        success.Should().BeTrue();
+        result.Should().NotBeNull();
+        result!.Version.Should().Be(version);
+    }
+
+    [Theory]
+    [InlineData("invalid")]
+    [InlineData("1.0")]
+    [InlineData("")]
+    [InlineData("tools")]
+    [InlineData("NuGetFallbackFolder")]
+    public void TryParse_InvalidVersion_ReturnsFalse(string version)
+    {
+        // Act
+        var success = SdkVersion.TryParse(version, out var result);
+
+        // Assert
+        success.Should().BeFalse();
+        result.Should().BeNull();
+    }
 }
