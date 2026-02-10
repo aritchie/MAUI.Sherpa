@@ -1,6 +1,7 @@
 @inherits LayoutComponentBase
 @using MauiSherpa.Core.Interfaces
 @inject IThemeService ThemeService
+@inject IEncryptedSettingsService EncryptedSettings
 @inject ISplashService SplashService
 @inject ISettingsMigrationService MigrationService
 @inject IAdbDeviceWatcherService DeviceWatcher
@@ -132,6 +133,9 @@
             // Sync theme class to body for modals rendered outside layout
             _ = SyncBodyThemeAsync();
             
+            // Apply persisted font scale
+            _ = SyncFontScaleAsync();
+            
             // Run settings migration in background
             _ = RunMigrationAsync();
 
@@ -151,6 +155,13 @@
             {
                 Logger.LogInformation("Running settings migration...");
                 await MigrationService.MigrateAsync();
+            }
+            
+            // Restore persisted font scale
+            var settings = await EncryptedSettings.GetSettingsAsync();
+            if (Math.Abs(settings.Preferences.FontScale - 1.0) > 0.001)
+            {
+                ThemeService.SetFontScale(settings.Preferences.FontScale);
             }
         }
         catch (Exception ex)
@@ -176,6 +187,7 @@
         {
             StateHasChanged();
             await SyncBodyThemeAsync();
+            await SyncFontScaleAsync();
         });
     }
 
@@ -185,6 +197,16 @@
         {
             var cls = ThemeService.IsDarkMode ? "theme-dark" : "theme-light";
             await JS.InvokeVoidAsync("eval", $"document.body.className = '{cls}'");
+        }
+        catch { }
+    }
+
+    private async Task SyncFontScaleAsync()
+    {
+        try
+        {
+            var sizePx = 16.0 * ThemeService.FontScale;
+            await JS.InvokeVoidAsync("eval", $"document.documentElement.style.fontSize = '{sizePx:F1}px'");
         }
         catch { }
     }
@@ -212,7 +234,7 @@
         color: white;
         display: flex;
         flex-direction: column;
-        box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
+        box-shadow: 2px 0 0.3125rem rgba(0, 0, 0, 0.1);
     }
 
     .sidebar-drag-region {
@@ -224,7 +246,7 @@
     .sidebar-menu {
         flex: 1;
         overflow-y: auto;
-        padding: 20px 0 80px 0;
+        padding: 1.25rem 0 5rem 0;
         scrollbar-width: none;
     }
 
@@ -251,26 +273,26 @@
     }
 
     .nav-section {
-        padding: 20px 20px 8px 20px;
-        font-size: 11px;
+        padding: 1.25rem 1.25rem 0.5rem 1.25rem;
+        font-size: 0.6875rem;
         font-weight: 600;
         text-transform: uppercase;
         color: #718096;
         letter-spacing: 0.05em;
         display: flex;
         align-items: center;
-        gap: 8px;
+        gap: 0.5rem;
     }
     
     .nav-section-icon {
-        font-size: 14px;
+        font-size: 0.875rem;
     }
 
     .nav-item {
         display: flex;
         align-items: center;
-        gap: 12px;
-        padding: 12px 20px;
+        gap: 0.75rem;
+        padding: 0.75rem 1.25rem;
         color: #cbd5e0;
         text-decoration: none;
         transition: all 0.2s ease;
@@ -280,7 +302,7 @@
     .nav-icon {
         width: 18px;
         text-align: center;
-        font-size: 14px;
+        font-size: 0.875rem;
         opacity: 0.8;
     }
 
@@ -356,7 +378,7 @@
         --text-muted: #718096;
         --border-color: #e2e8f0;
         --card-bg: #ffffff;
-        --card-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        --card-shadow: 0 2px 0.25rem rgba(0, 0, 0, 0.1);
         --input-bg: #ffffff;
         --input-border: #e2e8f0;
         --hover-bg: #f7fafc;
@@ -373,7 +395,7 @@
         --text-muted: #a0aec0;
         --border-color: #4a5568;
         --card-bg: #2d3748;
-        --card-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+        --card-shadow: 0 2px 0.25rem rgba(0, 0, 0, 0.3);
         --input-bg: #2d3748;
         --input-border: #4a5568;
         --hover-bg: #4a5568;

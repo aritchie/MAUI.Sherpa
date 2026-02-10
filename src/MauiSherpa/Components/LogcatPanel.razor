@@ -121,11 +121,11 @@
         min-height: 300px;
         background: var(--bg-secondary, #ffffff);
         border: 1px solid var(--border-color, #e2e8f0);
-        border-radius: 10px;
+        border-radius: 0.625rem;
         display: flex;
         flex-direction: column;
         /* z-index set via inline style for focus ordering */
-        box-shadow: 0 8px 32px rgba(0,0,0,0.18), 0 2px 8px rgba(0,0,0,0.08);
+        box-shadow: 0 0.5rem 2rem rgba(0,0,0,0.18), 0 2px 0.5rem rgba(0,0,0,0.08);
         animation: dialogIn 0.2s ease-out;
     }
 
@@ -150,13 +150,13 @@
         display: flex;
         align-items: center;
         justify-content: space-between;
-        padding: 7px 10px 7px 14px;
+        padding: 7px 0.625rem 7px 0.875rem;
         background: var(--bg-tertiary, #edf2f7);
         border-bottom: 1px solid var(--border-color, #e2e8f0);
         flex-shrink: 0;
         cursor: grab;
         user-select: none;
-        border-radius: 10px 10px 0 0;
+        border-radius: 0.625rem 0.625rem 0 0;
         overflow: hidden;
     }
     .dialog-titlebar:active { cursor: grabbing; }
@@ -164,15 +164,15 @@
     .dialog-title {
         display: flex;
         align-items: center;
-        gap: 8px;
-        font-size: 13px;
+        gap: 0.5rem;
+        font-size: 0.8125rem;
         font-weight: 600;
         color: var(--text-primary);
         overflow: hidden;
     }
     .title-android-icon {
         color: #3ddc84;
-        font-size: 15px;
+        font-size: 0.9375rem;
         flex-shrink: 0;
     }
     .title-text {
@@ -180,7 +180,7 @@
     }
     .title-serial {
         font-family: 'Consolas', 'Monaco', monospace;
-        font-size: 11px;
+        font-size: 0.6875rem;
         font-weight: 400;
         color: var(--text-muted);
         overflow: hidden;
@@ -198,9 +198,9 @@
         border: none;
         color: var(--text-secondary);
         cursor: pointer;
-        padding: 4px 8px;
-        border-radius: 5px;
-        font-size: 12px;
+        padding: 0.25rem 0.5rem;
+        border-radius: 0.3125rem;
+        font-size: 0.75rem;
         transition: all 0.12s;
         line-height: 1;
     }
@@ -221,7 +221,7 @@
         display: flex;
         flex-direction: column;
         padding: 0 !important;
-        border-radius: 0 0 10px 10px;
+        border-radius: 0 0 0.625rem 0.625rem;
     }
     .logcat-dialog .dialog-body .logcat-page {
         height: 100% !important;
@@ -232,11 +232,11 @@
         display: flex;
         align-items: center;
         justify-content: space-between;
-        padding: 0 8px;
+        padding: 0 0.5rem;
         background: var(--bg-tertiary, #edf2f7);
         border-bottom: 1px solid var(--border-color, #e2e8f0);
         flex-shrink: 0;
-        gap: 8px;
+        gap: 0.5rem;
     }
     .inspector-tabs {
         display: flex;
@@ -247,8 +247,8 @@
     .inspector-tab {
         background: none;
         border: none;
-        padding: 6px 12px;
-        font-size: 12px;
+        padding: 0.375rem 0.75rem;
+        font-size: 0.75rem;
         font-weight: 500;
         color: var(--text-secondary);
         cursor: pointer;
@@ -256,7 +256,7 @@
         transition: all 0.15s;
         display: flex;
         align-items: center;
-        gap: 5px;
+        gap: 0.3125rem;
         white-space: nowrap;
     }
     .inspector-tab:hover {
@@ -269,16 +269,16 @@
         font-weight: 600;
     }
     .inspector-tab i {
-        font-size: 11px;
+        font-size: 0.6875rem;
     }
 
     /* ── Panel-level device selector ── */
     .inspector-device-selector {
         display: flex;
         align-items: center;
-        gap: 4px;
-        padding: 3px 8px;
-        border-radius: 6px;
+        gap: 0.25rem;
+        padding: 3px 0.5rem;
+        border-radius: 0.375rem;
         border: 1px solid var(--border-color, #e2e8f0);
         background: var(--bg-secondary, #fff);
         cursor: pointer;
@@ -296,7 +296,7 @@
     }
     .inspector-device-icon {
         color: #3ddc84;
-        font-size: 12px;
+        font-size: 0.75rem;
         flex-shrink: 0;
     }
     .inspector-device-select {
@@ -304,7 +304,7 @@
         outline: none !important;
         -webkit-focus-ring-color: transparent;
         background: transparent;
-        font-size: 12px;
+        font-size: 0.75rem;
         font-family: 'Consolas', 'Monaco', monospace;
         color: var(--text-primary);
         cursor: pointer;
@@ -321,21 +321,21 @@
     /* ── Resize handles ── */
     .resize-handle { position: absolute; z-index: 10; touch-action: none; }
     .resize-handle:hover { background: var(--accent-primary, #4299e1); opacity: 0.35; }
-    .resize-n  { top: 0;     left: 14px;  right: 14px; height: 5px; cursor: n-resize; border-radius: 3px; }
-    .resize-s  { bottom: 0;  left: 14px;  right: 14px; height: 5px; cursor: s-resize; border-radius: 3px; }
-    .resize-e  { top: 14px;  right: 0;    bottom: 14px; width: 5px; cursor: e-resize; border-radius: 3px; }
-    .resize-w  { top: 14px;  left: 0;     bottom: 14px; width: 5px; cursor: w-resize; border-radius: 3px; }
-    .resize-ne { top: 0;     right: 0;    width: 14px; height: 14px; cursor: ne-resize; border-radius: 0 6px 0 6px; }
-    .resize-nw { top: 0;     left: 0;     width: 14px; height: 14px; cursor: nw-resize; border-radius: 6px 0 6px 0; }
-    .resize-se { bottom: 0;  right: 0;    width: 14px; height: 14px; cursor: se-resize; border-radius: 6px 0 6px 0; }
-    .resize-sw { bottom: 0;  left: 0;     width: 14px; height: 14px; cursor: sw-resize; border-radius: 0 6px 0 6px; }
+    .resize-n  { top: 0;     left: 0.875rem;  right: 0.875rem; height: 0.3125rem; cursor: n-resize; border-radius: 3px; }
+    .resize-s  { bottom: 0;  left: 0.875rem;  right: 0.875rem; height: 0.3125rem; cursor: s-resize; border-radius: 3px; }
+    .resize-e  { top: 0.875rem;  right: 0;    bottom: 0.875rem; width: 0.3125rem; cursor: e-resize; border-radius: 3px; }
+    .resize-w  { top: 0.875rem;  left: 0;     bottom: 0.875rem; width: 0.3125rem; cursor: w-resize; border-radius: 3px; }
+    .resize-ne { top: 0;     right: 0;    width: 0.875rem; height: 0.875rem; cursor: ne-resize; border-radius: 0 0.375rem 0 0.375rem; }
+    .resize-nw { top: 0;     left: 0;     width: 0.875rem; height: 0.875rem; cursor: nw-resize; border-radius: 0.375rem 0 0.375rem 0; }
+    .resize-se { bottom: 0;  right: 0;    width: 0.875rem; height: 0.875rem; cursor: se-resize; border-radius: 0.375rem 0 0.375rem 0; }
+    .resize-sw { bottom: 0;  left: 0;     width: 0.875rem; height: 0.875rem; cursor: sw-resize; border-radius: 0 0.375rem 0 0.375rem; }
     .resize-se::after {
         content: '';
         position: absolute;
         bottom: 3px;
         right: 3px;
-        width: 8px;
-        height: 8px;
+        width: 0.5rem;
+        height: 0.5rem;
         border-right: 2px solid var(--text-muted, #888);
         border-bottom: 2px solid var(--text-muted, #888);
         opacity: 0.5;
@@ -350,10 +350,10 @@
         height: 34px;
         display: flex;
         align-items: center;
-        gap: 10px;
+        gap: 0.625rem;
         background: var(--bg-tertiary, #edf2f7);
         border-top: 1px solid var(--border-color, #e2e8f0);
-        padding: 6px 16px;
+        padding: 0.375rem 1rem;
         cursor: pointer;
         z-index: 10100;
         user-select: none;
@@ -364,22 +364,22 @@
     }
     .collapsed-icon {
         color: #3ddc84;
-        font-size: 15px;
+        font-size: 0.9375rem;
     }
     .collapsed-label {
-        font-size: 13px;
+        font-size: 0.8125rem;
         font-weight: 600;
         color: var(--text-primary);
     }
     .collapsed-serial {
         font-family: 'Consolas', 'Monaco', monospace;
-        font-size: 12px;
+        font-size: 0.75rem;
         color: var(--text-muted);
         flex: 1;
     }
     .collapsed-expand {
         color: var(--text-secondary);
-        font-size: 11px;
+        font-size: 0.6875rem;
         transition: transform 0.15s;
     }
     .logcat-collapsed:hover .collapsed-expand {

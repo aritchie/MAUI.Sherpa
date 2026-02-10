@@ -8,8 +8,10 @@ namespace MauiSherpa.Services;
 public class ThemeService : IThemeService
 {
     private string _currentTheme = "System";
+    private double _fontScale = 1.0;
     
     public string CurrentTheme => _currentTheme;
+    public double FontScale => _fontScale;
     
     public bool IsDarkMode
     {
@@ -47,6 +49,15 @@ public class ThemeService : IThemeService
         if (_currentTheme == theme) return;
         
         _currentTheme = theme;
+        ThemeChanged?.Invoke();
+    }
+
+    public void SetFontScale(double scale)
+    {
+        scale = Math.Clamp(scale, 0.8, 1.5);
+        if (Math.Abs(_fontScale - scale) < 0.001) return;
+        
+        _fontScale = scale;
         ThemeChanged?.Invoke();
     }
 }

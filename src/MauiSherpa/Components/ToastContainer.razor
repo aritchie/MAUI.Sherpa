@@ -18,29 +18,29 @@
 <style>
     .sherpa-toast-container {
         position: fixed;
-        bottom: 20px;
-        right: 20px;
+        bottom: 1.25rem;
+        right: 1.25rem;
         z-index: 20001;
         display: flex;
         flex-direction: column-reverse;
-        gap: 10px;
+        gap: 0.625rem;
         pointer-events: none;
     }
 
     .sherpa-toast {
         display: flex;
         align-items: center;
-        gap: 12px;
-        padding: 12px 16px;
-        border-radius: 8px;
+        gap: 0.75rem;
+        padding: 0.75rem 1rem;
+        border-radius: 0.5rem;
         background: #2d3748;
         color: #fff;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        box-shadow: 0 0.25rem 0.75rem rgba(0, 0, 0, 0.3);
         min-width: 280px;
         max-width: 400px;
         pointer-events: auto;
         animation: sherpaSlideIn 0.3s ease-out;
-        border-left: 4px solid;
+        border-left: 0.25rem solid;
     }
 
     .sherpa-toast.exiting {
@@ -64,9 +64,9 @@
         border: none;
         color: #888;
         cursor: pointer;
-        padding: 4px;
+        padding: 0.25rem;
         margin: -4px;
-        border-radius: 4px;
+        border-radius: 0.25rem;
         transition: color 0.2s, background 0.2s;
         flex-shrink: 0;
     }

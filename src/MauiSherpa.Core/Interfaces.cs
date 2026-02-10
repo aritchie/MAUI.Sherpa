@@ -34,8 +34,10 @@ public interface IThemeService
 {
     string CurrentTheme { get; }
     bool IsDarkMode { get; }
+    double FontScale { get; }
     event Action? ThemeChanged;
     void SetTheme(string theme); // "Light", "Dark", or "System"
+    void SetFontScale(double scale);
 }
 
 public interface IDialogService
@@ -2291,6 +2293,7 @@ public record SecretsPublisherData(
 public record AppPreferences
 {
     public string Theme { get; init; } = "System";
+    public double FontScale { get; init; } = 1.0;
     public string? AndroidSdkPath { get; init; }
     public bool AutoBackupEnabled { get; init; } = true;
     public bool DemoMode { get; init; } = false;

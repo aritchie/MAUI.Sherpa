@@ -18,6 +18,13 @@ public class SettingsViewModel : ViewModelBase
         set => SetProperty(ref _theme, value);
     }
 
+    private double _fontScale = 1.0;
+    public double FontScale
+    {
+        get => _fontScale;
+        set => SetProperty(ref _fontScale, value);
+    }
+
     public SettingsViewModel(Interfaces.IAlertService? alertService = null, Interfaces.ILoggingService? loggingService = null)
         : base(alertService ?? new StubAlertService(), loggingService ?? new StubLoggingService())
     {
@@ -32,6 +39,7 @@ public class SettingsViewModel : ViewModelBase
     {
         EnableNotifications = true;
         Theme = "System";
+        FontScale = 1.0;
         await Task.Delay(500);
     }
 

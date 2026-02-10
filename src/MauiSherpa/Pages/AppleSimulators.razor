@@ -309,33 +309,33 @@ else
 
 <style>
     h1 {
-        margin-bottom: 20px;
-        font-size: 28px;
+        margin-bottom: 1.25rem;
+        font-size: 1.75rem;
         color: var(--text-primary);
     }
 
     .toolbar {
-        margin-bottom: 20px;
+        margin-bottom: 1.25rem;
         display: flex;
-        gap: 12px;
+        gap: 0.75rem;
     }
 
     .filter-bar {
         display: flex;
-        gap: 12px;
-        margin-bottom: 20px;
+        gap: 0.75rem;
+        margin-bottom: 1.25rem;
         flex-wrap: wrap;
-        padding: 12px 16px;
+        padding: 0.75rem 1rem;
         border: 1px solid var(--border-color);
-        border-radius: 8px;
+        border-radius: 0.5rem;
         background: var(--card-bg);
     }
 
     .filter-input, .filter-select {
-        padding: 8px 12px;
+        padding: 0.5rem 0.75rem;
         border: 1px solid var(--border-color);
-        border-radius: 6px;
-        font-size: 14px;
+        border-radius: 0.375rem;
+        font-size: 0.875rem;
         background: var(--card-bg);
         color: var(--text-primary);
         min-width: 160px;
@@ -348,18 +348,18 @@ else
     }
 
     .btn {
-        padding: 10px 20px;
+        padding: 0.625rem 1.25rem;
         border: none;
-        border-radius: 6px;
-        font-size: 14px;
+        border-radius: 0.375rem;
+        font-size: 0.875rem;
         cursor: pointer;
         transition: all 0.2s ease;
         display: inline-flex;
         align-items: center;
-        gap: 6px;
+        gap: 0.375rem;
     }
 
-    .btn i { font-size: 12px; }
+    .btn i { font-size: 0.75rem; }
     .btn-primary { background-color: var(--accent-primary); color: var(--card-bg); }
     .btn-primary:hover:not(:disabled) { background-color: var(--accent-primary-hover); }
     .btn-success { background-color: var(--accent-success); color: var(--card-bg); }
@@ -370,15 +370,15 @@ else
     .btn-danger:hover:not(:disabled) { background-color: var(--accent-danger-hover); }
     .btn-secondary { background-color: var(--text-secondary); color: var(--card-bg); }
     .btn-secondary:hover:not(:disabled) { background-color: var(--text-muted); }
-    .btn-sm { padding: 6px 12px; font-size: 12px; }
+    .btn-sm { padding: 0.375rem 0.75rem; font-size: 0.75rem; }
     .btn-info { background-color: var(--accent-primary); color: var(--card-bg); }
     .btn-info:hover:not(:disabled) { background-color: var(--accent-primary-hover); }
     .btn:disabled { opacity: 0.6; cursor: not-allowed; }
 
     .spinner-large {
         display: inline-block;
-        width: 32px;
-        height: 32px;
+        width: 2rem;
+        height: 2rem;
         border: 3px solid var(--border-color);
         border-top-color: var(--accent-success);
         border-radius: 50%;
@@ -392,18 +392,18 @@ else
     .simulator-list {
         display: flex;
         flex-direction: column;
-        gap: 12px;
+        gap: 0.75rem;
     }
 
     .simulator-card {
         background: var(--card-bg);
-        border-radius: 8px;
-        padding: 20px;
+        border-radius: 0.5rem;
+        padding: 1.25rem;
         display: flex;
         align-items: center;
-        gap: 16px;
+        gap: 1rem;
         box-shadow: var(--card-shadow);
-        border-left: 4px solid transparent;
+        border-left: 0.25rem solid transparent;
     }
 
     .simulator-card.running {
@@ -416,16 +416,16 @@ else
     }
 
     .simulator-icon {
-        font-size: 36px;
-        width: 40px;
-        height: 40px;
+        font-size: 2.25rem;
+        width: 2.5rem;
+        height: 2.5rem;
         display: flex;
         align-items: center;
         justify-content: center;
         color: var(--accent-primary);
     }
 
-    .simulator-icon i { font-size: 32px; }
+    .simulator-icon i { font-size: 2rem; }
 
     .simulator-details {
         flex: 1;
@@ -433,28 +433,28 @@ else
 
     .simulator-name {
         font-weight: 600;
-        font-size: 16px;
+        font-size: 1rem;
         color: var(--text-primary);
     }
 
     .simulator-info {
-        font-size: 13px;
+        font-size: 0.8125rem;
         color: var(--text-muted);
-        margin-top: 4px;
+        margin-top: 0.25rem;
     }
 
     .simulator-info span {
-        margin-right: 8px;
+        margin-right: 0.5rem;
     }
 
     .simulator-udid {
         font-family: 'Consolas', 'Monaco', monospace;
-        font-size: 11px;
+        font-size: 0.6875rem;
         color: var(--text-muted);
         margin-top: 2px;
         display: flex;
         align-items: center;
-        gap: 6px;
+        gap: 0.375rem;
     }
 
     .btn-copy {
@@ -462,9 +462,9 @@ else
         border: none;
         color: var(--text-secondary);
         cursor: pointer;
-        padding: 2px 6px;
-        font-size: 11px;
-        border-radius: 4px;
+        padding: 2px 0.375rem;
+        font-size: 0.6875rem;
+        border-radius: 0.25rem;
         transition: all 0.15s;
         flex-shrink: 0;
     }
@@ -475,27 +475,27 @@ else
 
     .simulator-badges {
         display: flex;
-        gap: 8px;
-        margin-top: 8px;
+        gap: 0.5rem;
+        margin-top: 0.5rem;
     }
 
     .simulator-actions, .sim-actions {
         display: flex;
-        gap: 4px;
+        gap: 0.25rem;
         align-items: center;
     }
 
     .btn.btn-icon {
-        width: 32px;
-        height: 32px;
+        width: 2rem;
+        height: 2rem;
         padding: 0;
         display: inline-flex;
         align-items: center;
         justify-content: center;
-        border-radius: 6px;
-        font-size: 13px;
+        border-radius: 0.375rem;
+        font-size: 0.8125rem;
     }
-    .btn.btn-icon i { font-size: 13px; margin: 0; }
+    .btn.btn-icon i { font-size: 0.8125rem; margin: 0; }
 
     /* ── Dropdown ── */
     .sim-dropdown {
@@ -508,14 +508,14 @@ else
         position: absolute;
         right: 0;
         top: 100%;
-        margin-top: 4px;
+        margin-top: 0.25rem;
         min-width: 140px;
         background: var(--card-bg);
         border: 1px solid var(--border-color);
-        border-radius: 8px;
-        box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+        border-radius: 0.5rem;
+        box-shadow: 0 0.25rem 1rem rgba(0,0,0,0.15);
         z-index: 100;
-        padding: 4px 0;
+        padding: 0.25rem 0;
         animation: dropdownIn 0.12s ease-out;
     }
     @@keyframes dropdownIn {
@@ -525,32 +525,32 @@ else
     .sim-dropdown-item {
         display: flex;
         align-items: center;
-        gap: 8px;
+        gap: 0.5rem;
         width: 100%;
-        padding: 7px 14px;
+        padding: 7px 0.875rem;
         border: none;
         background: none;
         color: var(--text-primary);
-        font-size: 13px;
+        font-size: 0.8125rem;
         cursor: pointer;
         text-align: left;
         transition: background 0.1s;
     }
     .sim-dropdown-item:hover:not(:disabled) { background: var(--bg-tertiary); }
     .sim-dropdown-item:disabled { opacity: 0.4; cursor: not-allowed; }
-    .sim-dropdown-item i { font-size: 12px; width: 14px; text-align: center; color: var(--text-secondary); }
+    .sim-dropdown-item i { font-size: 0.75rem; width: 0.875rem; text-align: center; color: var(--text-secondary); }
     .sim-dropdown-item.danger { color: var(--accent-danger, #e53e3e); }
     .sim-dropdown-item.danger i { color: var(--accent-danger, #e53e3e); }
     .sim-dropdown-divider {
         height: 1px;
         background: var(--border-color);
-        margin: 4px 0;
+        margin: 0.25rem 0;
     }
 
     .badge {
-        padding: 2px 10px;
-        border-radius: 12px;
-        font-size: 12px;
+        padding: 2px 0.625rem;
+        border-radius: 0.75rem;
+        font-size: 0.75rem;
         font-weight: 500;
     }
 
@@ -561,16 +561,16 @@ else
 
     .empty-state, .loading-state {
         background: var(--card-bg);
-        border-radius: 8px;
-        padding: 60px 40px;
+        border-radius: 0.5rem;
+        padding: 3.75rem 2.5rem;
         text-align: center;
         box-shadow: var(--card-shadow);
     }
 
-    .empty-icon, .loading-spinner { font-size: 48px; margin-bottom: 16px; color: var(--text-secondary); }
+    .empty-icon, .loading-spinner { font-size: 48px; margin-bottom: 1rem; color: var(--text-secondary); }
     .empty-icon i, .loading-spinner i { font-size: 48px; }
-    .empty-title, .loading-title { font-size: 18px; font-weight: 600; color: var(--text-primary); margin-bottom: 8px; }
-    .empty-description, .loading-description { color: var(--text-muted); font-size: 14px; }
+    .empty-title, .loading-title { font-size: 1.125rem; font-weight: 600; color: var(--text-primary); margin-bottom: 0.5rem; }
+    .empty-description, .loading-description { color: var(--text-muted); font-size: 0.875rem; }
 
     .loading-spinner {
         animation: pulse 2s ease-in-out infinite;
@@ -583,21 +583,21 @@ else
 
     /* Section labels */
     .section-label {
-        font-size: 11px; font-weight: 600;
+        font-size: 0.6875rem; font-weight: 600;
         text-transform: uppercase; letter-spacing: 0.05em;
-        margin-top: 20px; margin-bottom: 8px;
-        display: flex; align-items: center; gap: 6px;
+        margin-top: 1.25rem; margin-bottom: 0.5rem;
+        display: flex; align-items: center; gap: 0.375rem;
         color: var(--text-muted);
     }
-    .section-label i { font-size: 11px; }
-    .loading-indicator { color: var(--text-muted); font-size: 13px; padding: 12px; display: flex; align-items: center; gap: 8px; }
+    .section-label i { font-size: 0.6875rem; }
+    .loading-indicator { color: var(--text-muted); font-size: 0.8125rem; padding: 0.75rem; display: flex; align-items: center; gap: 0.5rem; }
     .empty-hint {
-        color: var(--text-muted); font-size: 13px; padding: 16px;
-        background: var(--card-bg); border-radius: 8px;
+        color: var(--text-muted); font-size: 0.8125rem; padding: 1rem;
+        background: var(--card-bg); border-radius: 0.5rem;
         border: 1px dashed var(--border-color); text-align: center;
     }
-    .badge-transport { background: var(--bg-tertiary); color: var(--text-secondary); display: inline-flex; align-items: center; gap: 4px; }
-    .badge-transport i { font-size: 10px; }
+    .badge-transport { background: var(--bg-tertiary); color: var(--text-secondary); display: inline-flex; align-items: center; gap: 0.25rem; }
+    .badge-transport i { font-size: 0.625rem; }
 
     .modal-overlay {
         position: fixed;
@@ -614,53 +614,53 @@ else
 
     .modal {
         background: var(--card-bg);
-        border-radius: 12px;
+        border-radius: 0.75rem;
         width: 90%;
         max-width: 500px;
-        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        box-shadow: 0 1.25rem 3.75rem rgba(0, 0, 0, 0.3);
     }
 
     .modal-header {
         display: flex;
         justify-content: space-between;
         align-items: center;
-        padding: 20px 24px;
+        padding: 1.25rem 1.5rem;
         border-bottom: 1px solid var(--border-color);
     }
 
     .modal-header h2 {
         margin: 0;
-        font-size: 18px;
+        font-size: 1.125rem;
         color: var(--text-primary);
     }
 
     .close-btn {
         background: none;
         border: none;
-        font-size: 24px;
+        font-size: 1.5rem;
         cursor: pointer;
         color: var(--text-secondary);
     }
 
     .modal-body {
-        padding: 24px;
+        padding: 1.5rem;
     }
 
     .modal-footer {
-        padding: 16px 24px;
+        padding: 1rem 1.5rem;
         border-top: 1px solid var(--border-color);
         display: flex;
         justify-content: flex-end;
-        gap: 12px;
+        gap: 0.75rem;
     }
 
     .form-group {
-        margin-bottom: 20px;
+        margin-bottom: 1.25rem;
     }
 
     .form-group label {
         display: block;
-        margin-bottom: 8px;
+        margin-bottom: 0.5rem;
         font-weight: 500;
         color: var(--text-secondary);
     }
@@ -668,10 +668,10 @@ else
     .form-group input,
     .form-group select {
         width: 100%;
-        padding: 10px 12px;
+        padding: 0.625rem 0.75rem;
         border: 1px solid var(--border-color);
-        border-radius: 6px;
-        font-size: 14px;
+        border-radius: 0.375rem;
+        font-size: 0.875rem;
         background: var(--card-bg);
         color: var(--text-primary);
     }
@@ -684,8 +684,8 @@ else
     }
 
     .help-text {
-        margin-top: 8px;
-        font-size: 12px;
+        margin-top: 0.5rem;
+        font-size: 0.75rem;
         color: var(--accent-warning);
     }
 
