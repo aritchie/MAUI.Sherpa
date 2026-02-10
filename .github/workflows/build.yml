@@ -140,6 +140,20 @@ jobs:
           
           echo "Certificate and profile setup complete."
 
+      - name: Determine version
+        id: version
+        run: |
+          SHA="${GITHUB_SHA::8}"
+          if [[ "$GITHUB_REF" == refs/tags/v* ]]; then
+            VER="${GITHUB_REF#refs/tags/v}"
+          else
+            # Read from Directory.Build.props
+            VER=$(grep '<AppVersion>' Directory.Build.props | sed 's/.*<AppVersion>\(.*\)<\/AppVersion>.*/\1/')
+          fi
+          echo "app_version=$VER" >> $GITHUB_OUTPUT
+          echo "commit_sha=$SHA" >> $GITHUB_OUTPUT
+          echo "Version: $VER+$SHA"
+
       - name: Publish Mac Catalyst App (Signed)
         if: env.APPLE_CERTIFICATE_P12 != ''
         env:
@@ -151,7 +165,9 @@ jobs:
             -c Release \
             -p:CreatePackage=false \
             -p:EnableCodeSigning=true \
-            -p:CodesignKey="$APPLE_CODESIGN_IDENTITY"
+            -p:CodesignKey="$APPLE_CODESIGN_IDENTITY" \
+            -p:AppVersion=${{ steps.version.outputs.app_version }} \
+            -p:AppCommitSha=${{ steps.version.outputs.commit_sha }}
           
           # Copy the universal app bundle to artifacts
           mkdir -p ./artifacts/maccatalyst
@@ -181,7 +197,9 @@ jobs:
             -f net10.0-maccatalyst \
             -c Release \
             -p:CreatePackage=false \
-            -p:EnableCodeSigning=false
+            -p:EnableCodeSigning=false \
+            -p:AppVersion=${{ steps.version.outputs.app_version }} \
+            -p:AppCommitSha=${{ steps.version.outputs.commit_sha }}
           
           # Copy the universal app bundle to artifacts
           mkdir -p ./artifacts/maccatalyst

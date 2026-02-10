@@ -114,8 +114,9 @@ public class UpdateService : IUpdateService
 
         try
         {
-            var remoteParts = remote.Split('-')[0].Split('.');
-            var currentParts = current.Split('-')[0].Split('.');
+            // Strip pre-release (-beta.1) and build metadata (+abc123) suffixes
+            var remoteParts = remote.Split(['-', '+'])[0].Split('.');
+            var currentParts = current.Split(['-', '+'])[0].Split('.');
 
             var remoteNumbers = new List<int>();
             var currentNumbers = new List<int>();

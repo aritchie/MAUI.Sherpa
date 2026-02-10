@@ -1,4 +1,5 @@
 using Microsoft.Extensions.Logging;
+using System.Reflection;
 using MauiSherpa.Services;
 using MauiSherpa.Core.ViewModels;
 using MauiSherpa.Core.Interfaces;
@@ -108,7 +109,10 @@ public static class MauiProgram
             var httpClient = new HttpClient();
             httpClient.DefaultRequestHeaders.Add("User-Agent", "MauiSherpa");
             var logger = sp.GetRequiredService<ILoggingService>();
-            return new UpdateService(httpClient, logger, AppInfo.VersionString);
+            var version = typeof(MauiProgram).Assembly
+                .GetCustomAttribute<System.Reflection.AssemblyInformationalVersionAttribute>()
+                ?.InformationalVersion ?? AppInfo.VersionString;
+            return new UpdateService(httpClient, logger, version);
         });
 
         // ViewModels

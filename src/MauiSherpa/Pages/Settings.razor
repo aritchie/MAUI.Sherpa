@@ -20,6 +20,7 @@
 @inject ISecretsPublisherFactory SecretsPublisherFactory
 @inject IBackupService BackupService
 @inject IEncryptedSettingsService EncryptedSettings
+@inject IUpdateService UpdateService
 @implements IDisposable
 @inject IJSRuntime JS
 
@@ -72,6 +73,13 @@
             <button class="btn btn-secondary" @onclick="ResetSettings">
                 <i class="fas fa-undo"></i> Reset to Defaults
             </button>
+        </div>
+        
+        <div class="setting-group" style="margin-top: 1.5rem;">
+            <div class="setting-item">
+                <label class="setting-label">Version</label>
+                <span class="mono text-selectable">@appVersion</span>
+            </div>
         </div>
     </div>
 </div>
@@ -1395,6 +1403,7 @@
     }
     
     private bool demoMode = false;
+    private string appVersion = "";
     private bool showIdentityDialog = false;
     private AppleIdentity? editingIdentity = null;
     private string identityName = "";
@@ -1484,6 +1493,8 @@
         await InitializeSdk();
         await InitializeJdk();
         await LoadDemoMode();
+        
+        appVersion = UpdateService.GetCurrentVersion();
     }
 
     private async Task LoadDemoMode()
