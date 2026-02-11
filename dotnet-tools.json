@@ -3,7 +3,7 @@
   "isRoot": true,
   "tools": {
     "redth.mauidevflow.cli": {
-      "version": "0.5.2",
+      "version": "0.7.1",
       "commands": [
         "maui-devflow"
       ],
