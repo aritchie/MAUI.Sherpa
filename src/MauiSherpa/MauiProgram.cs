@@ -92,6 +92,7 @@ public static class MauiProgram
         // Cloud Secrets Storage services
         builder.Services.AddSingleton<ICloudSecretsProviderFactory, CloudSecretsProviderFactory>();
         builder.Services.AddSingleton<ICloudSecretsService, CloudSecretsService>();
+        builder.Services.AddSingleton<IManagedSecretsService, ManagedSecretsService>();
         builder.Services.AddSingleton<ICertificateSyncService, CertificateSyncService>();
 
         // CI/CD Secrets Publisher services

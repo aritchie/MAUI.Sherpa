@@ -72,6 +72,16 @@
                 <span>Root Certificates</span>
             </NavLink>
 
+            <div class="nav-section"><i class="fas fa-vault nav-section-icon"></i> Secrets</div>
+            <NavLink class="nav-item" href="secrets">
+                <i class="fas fa-key nav-icon"></i>
+                <span>Secrets</span>
+            </NavLink>
+            <NavLink class="nav-item" href="secrets/publish">
+                <i class="fas fa-upload nav-icon"></i>
+                <span>Publish</span>
+            </NavLink>
+
             @if (isDebugBuild && !isDemoMode)
             {
                 <div class="nav-section"><i class="fas fa-flask nav-section-icon"></i> Development</div>

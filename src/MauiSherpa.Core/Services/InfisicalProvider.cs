@@ -299,13 +299,14 @@ public class InfisicalProvider : ICloudSecretsProvider
             if (secrets == null)
                 return Array.Empty<string>();
 
+            var sanitizedPrefix = !string.IsNullOrEmpty(prefix) ? SanitizeSecretName(prefix) : null;
             var result = new List<string>();
             foreach (var secret in secrets)
             {
                 var secretKey = secret.SecretKey;
                 
-                // Filter by prefix if specified
-                if (!string.IsNullOrEmpty(prefix) && !secretKey.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
+                // Filter by sanitized prefix if specified
+                if (sanitizedPrefix != null && !secretKey.StartsWith(sanitizedPrefix, StringComparison.OrdinalIgnoreCase))
                     continue;
                 
                 result.Add(secretKey);

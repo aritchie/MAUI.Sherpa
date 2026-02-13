@@ -881,10 +881,7 @@
         syncHintDismissed = Preferences.Default.Get(SyncHintDismissedKey, false);
         
         // Initialize cloud secrets service to load active provider
-        if (CloudSecretsService is MauiSherpa.Core.Services.CloudSecretsService svc)
-        {
-            await svc.InitializeAsync();
-        }
+        await CloudSecretsService.InitializeAsync();
         
         if (IdentityState.SelectedIdentity != null)
             await RefreshData();

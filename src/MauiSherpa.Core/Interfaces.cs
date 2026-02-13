@@ -1978,11 +1978,77 @@ public interface ICloudSecretsProviderFactory
 }
 
 /// <summary>
+/// Type of managed secret value
+/// </summary>
+public enum ManagedSecretType
+{
+    String,
+    File
+}
+
+/// <summary>
+/// A secret managed by Sherpa in a cloud secrets provider
+/// </summary>
+public record ManagedSecret(
+    string Key,
+    ManagedSecretType Type,
+    string? Description,
+    string? OriginalFileName,
+    DateTime CreatedAt,
+    DateTime UpdatedAt
+);
+
+/// <summary>
+/// Service for managing Sherpa-owned secrets in cloud storage.
+/// Uses key prefixes to distinguish Sherpa-managed secrets from others.
+/// </summary>
+public interface IManagedSecretsService
+{
+    const string SecretPrefix = "sherpa-secrets/";
+    const string MetadataPrefix = "sherpa-secrets-meta/";
+
+    /// <summary>
+    /// Lists all Sherpa-managed secrets
+    /// </summary>
+    Task<IReadOnlyList<ManagedSecret>> ListAsync(CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Gets metadata for a specific managed secret
+    /// </summary>
+    Task<ManagedSecret?> GetAsync(string key, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Gets the raw value bytes of a managed secret
+    /// </summary>
+    Task<byte[]?> GetValueAsync(string key, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Creates a new managed secret
+    /// </summary>
+    Task<bool> CreateAsync(string key, byte[] value, ManagedSecretType type, string? description = null, string? originalFileName = null, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Updates an existing managed secret's value and/or metadata
+    /// </summary>
+    Task<bool> UpdateAsync(string key, byte[]? value = null, string? description = null, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Deletes a managed secret and its metadata
+    /// </summary>
+    Task<bool> DeleteAsync(string key, CancellationToken cancellationToken = default);
+}
+
+/// <summary>
 /// Service for managing cloud secrets storage providers and operations
 /// </summary>
 public interface ICloudSecretsService
 {
     // Provider management
+
+    /// <summary>
+    /// Initializes the service, loading the active provider from storage
+    /// </summary>
+    Task InitializeAsync();
     
     /// <summary>
     /// Gets all configured cloud secrets providers
