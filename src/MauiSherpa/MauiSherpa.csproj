@@ -45,10 +45,10 @@
     <PackageReference Include="Markdig" Version="0.44.0" />
     <PackageReference Include="Microsoft.AspNetCore.Components.WebView.Maui" Version="10.0.1" />
     <PackageReference Include="Microsoft.Extensions.Caching.Memory" Version="10.0.0" />
-    <PackageReference Include="Microsoft.Maui.Controls" Version="10.0.20" />
+    <PackageReference Include="Microsoft.Maui.Controls" Version="10.0.31" />
     <PackageReference Include="Microsoft.Extensions.Logging.Debug" Version="10.0.0" />
-    <PackageReference Include="Redth.MauiDevFlow.Agent" Version="0.7.1" />
-    <PackageReference Include="Redth.MauiDevFlow.Blazor" Version="0.7.1" />
+    <PackageReference Include="Redth.MauiDevFlow.Agent" Version="0.8.0" />
+    <PackageReference Include="Redth.MauiDevFlow.Blazor" Version="0.8.0" />
     <PackageReference Include="Shiny.Mediator.Caching.MicrosoftMemoryCache" Version="6.1.1" />
     <PackageReference Include="Shiny.Mediator.Maui" Version="6.1.1" />
   </ItemGroup>
