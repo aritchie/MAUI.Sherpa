@@ -224,14 +224,36 @@ else
                             </div>
                             @if (msg.IsComplete && !string.IsNullOrEmpty(msg.Content) && !IsUnusableToolResult(msg.Content))
                             {
-                                <div class="tool-result @(msg.IsCollapsed ? "collapsed" : "")">
-                                    <button class="tool-result-toggle" @onclick="@(() => ToggleMessageCollapse(msg))">
-                                        <span>@(msg.IsCollapsed ? "Show Result" : "Hide Result")</span>
-                                        <i class="fas @(msg.IsCollapsed ? "fa-chevron-down" : "fa-chevron-up")"></i>
-                                    </button>
-                                    @if (!msg.IsCollapsed)
+                                var parsed = ParseBashOutput(msg.Content);
+                                <div class="tool-result">
+                                    @if (!string.IsNullOrEmpty(parsed.Command))
                                     {
-                                        <pre class="tool-result-content">@TruncateResult(msg.Content)</pre>
+                                        <div class="tool-command-box">
+                                            <span class="tool-command-prompt">$</span>
+                                            <code class="tool-command-text">@parsed.Command</code>
+                                        </div>
+                                        @if (!string.IsNullOrEmpty(parsed.Output))
+                                        {
+                                            <button class="tool-output-toggle" @onclick="@(() => ToggleMessageCollapse(msg))">
+                                                <i class="fas @(msg.IsCollapsed ? "fa-chevron-right" : "fa-chevron-down")"></i>
+                                                <span>Output</span>
+                                            </button>
+                                            @if (!msg.IsCollapsed)
+                                            {
+                                                <pre class="tool-output-content">@TruncateResult(parsed.Output)</pre>
+                                            }
+                                        }
+                                    }
+                                    else
+                                    {
+                                        <button class="tool-result-toggle" @onclick="@(() => ToggleMessageCollapse(msg))">
+                                            <span>@(msg.IsCollapsed ? "Show Result" : "Hide Result")</span>
+                                            <i class="fas @(msg.IsCollapsed ? "fa-chevron-down" : "fa-chevron-up")"></i>
+                                        </button>
+                                        @if (!msg.IsCollapsed)
+                                        {
+                                            <pre class="tool-result-content">@TruncateResult(msg.Content)</pre>
+                                        }
                                     }
                                 </div>
                             }
@@ -1301,6 +1323,78 @@ else
         border-top: 1px solid var(--border-color);
     }
 
+    /* Bash command box - always visible */
+    .tool-command-box {
+        display: flex;
+        align-items: flex-start;
+        gap: 0.5rem;
+        padding: 0.75rem 1rem;
+        background: #1e1e2e;
+        font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+        font-size: 0.8125rem;
+        line-height: 1.5;
+    }
+
+    .tool-command-prompt {
+        color: #89b4fa;
+        font-weight: 600;
+        flex-shrink: 0;
+    }
+
+    .tool-command-text {
+        color: #cdd6f4;
+        white-space: pre-wrap;
+        word-break: break-word;
+        background: transparent;
+        padding: 0;
+        font-size: inherit;
+    }
+
+    /* Output toggle button */
+    .tool-output-toggle {
+        width: 100%;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.375rem 1rem;
+        background: #181825;
+        border: none;
+        border-top: 1px solid rgba(255, 255, 255, 0.08);
+        cursor: pointer;
+        font-size: 0.6875rem;
+        font-weight: 500;
+        color: #7f849c;
+        text-transform: uppercase;
+        letter-spacing: 0.03em;
+    }
+
+    .tool-output-toggle:hover {
+        background: #1e1e2e;
+        color: #a6adc8;
+    }
+
+    .tool-output-toggle i {
+        font-size: 0.625rem;
+        transition: transform 0.15s ease;
+    }
+
+    /* Output content */
+    .tool-output-content {
+        margin: 0;
+        padding: 0.75rem 1rem;
+        font-size: 0.75rem;
+        background: #11111b;
+        color: #a6adc8;
+        white-space: pre-wrap;
+        word-break: break-word;
+        max-height: 250px;
+        overflow-y: auto;
+        font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+        line-height: 1.5;
+        border-top: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    /* Keep existing styles for non-bash results */
     .tool-result-toggle {
         width: 100%;
         display: flex;
@@ -2606,6 +2700,30 @@ else
         if (string.IsNullOrEmpty(result)) return "";
         if (result.Length <= maxLength) return result;
         return result.Substring(0, maxLength) + "\n... (truncated)";
+    }
+    
+    private (string Command, string Output) ParseBashOutput(string content)
+    {
+        if (string.IsNullOrEmpty(content))
+            return ("", "");
+        
+        // Check if the content starts with "$ " indicating a bash command
+        var trimmed = content.TrimStart();
+        if (!trimmed.StartsWith("$ "))
+            return ("", content);
+        
+        // Find the end of the command line (first newline)
+        var newlineIndex = trimmed.IndexOf('\n');
+        if (newlineIndex == -1)
+        {
+            // No output, just a command
+            return (trimmed.Substring(2), "");
+        }
+        
+        var command = trimmed.Substring(2, newlineIndex - 2).Trim();
+        var output = trimmed.Substring(newlineIndex + 1).TrimEnd();
+        
+        return (command, output);
     }
     
     private bool IsUnusableToolResult(string? content)

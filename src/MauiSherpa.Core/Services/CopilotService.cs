@@ -873,6 +873,7 @@ public class CopilotService : ICopilotService, IAsyncDisposable
             msg.IsComplete = true;
             msg.IsSuccess = success;
             msg.Content = result;
+            msg.IsCollapsed = true; // Collapse output by default (command still visible)
             _logger.LogDebug($"CompleteToolMessage: Completed tool {msg.ToolName}");
         }
         else
