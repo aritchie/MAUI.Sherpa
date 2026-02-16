@@ -19,10 +19,14 @@ public class BackupService : IBackupService
     private static readonly byte[] MagicHeader = "MSSBAK01"u8.ToArray();
     
     private readonly IEncryptedSettingsService _settingsService;
+    private readonly IAppleIdentityService? _appleIdentityService;
 
-    public BackupService(IEncryptedSettingsService settingsService)
+    public BackupService(
+        IEncryptedSettingsService settingsService,
+        IAppleIdentityService? appleIdentityService = null)
     {
         _settingsService = settingsService;
+        _appleIdentityService = appleIdentityService;
     }
 
     public async Task<byte[]> ExportSettingsAsync(string password)
@@ -31,6 +35,34 @@ public class BackupService : IBackupService
             throw new ArgumentException("Password is required", nameof(password));
 
         var settings = await _settingsService.GetSettingsAsync();
+        if (_appleIdentityService is not null)
+        {
+            var identities = await _appleIdentityService.GetIdentitiesAsync();
+            if (identities.Count > 0)
+            {
+                var createdAtById = new Dictionary<string, DateTime>();
+                foreach (var identity in settings.AppleIdentities)
+                {
+                    createdAtById[identity.Id] = identity.CreatedAt;
+                }
+
+                settings = settings with
+                {
+                    AppleIdentities = identities
+                        .Select(identity => new AppleIdentityData(
+                            Id: identity.Id,
+                            Name: identity.Name,
+                            KeyId: identity.KeyId,
+                            IssuerId: identity.IssuerId,
+                            P8Content: identity.P8KeyContent ?? string.Empty,
+                            CreatedAt: createdAtById.TryGetValue(identity.Id, out var createdAt)
+                                ? createdAt
+                                : DateTime.UtcNow))
+                        .ToList()
+                };
+            }
+        }
+
         var json = JsonSerializer.Serialize(settings);
         var plaintext = Encoding.UTF8.GetBytes(json);
 

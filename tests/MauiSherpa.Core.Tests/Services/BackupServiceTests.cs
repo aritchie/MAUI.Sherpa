@@ -9,12 +9,18 @@ namespace MauiSherpa.Core.Tests.Services;
 public class BackupServiceTests
 {
     private readonly Mock<IEncryptedSettingsService> _mockSettingsService;
+    private readonly Mock<IAppleIdentityService> _mockAppleIdentityService;
     private readonly BackupService _service;
 
     public BackupServiceTests()
     {
         _mockSettingsService = new Mock<IEncryptedSettingsService>();
-        _service = new BackupService(_mockSettingsService.Object);
+        _mockAppleIdentityService = new Mock<IAppleIdentityService>();
+        _mockAppleIdentityService
+            .Setup(x => x.GetIdentitiesAsync())
+            .ReturnsAsync(Array.Empty<AppleIdentity>());
+
+        _service = new BackupService(_mockSettingsService.Object, _mockAppleIdentityService.Object);
     }
 
     [Fact]
@@ -80,6 +86,32 @@ public class BackupServiceTests
         imported.AppleIdentities.Should().HaveCount(1);
         imported.AppleIdentities[0].Name.Should().Be("My Identity");
         imported.AppleIdentities[0].KeyId.Should().Be("KEY123");
+    }
+
+    [Fact]
+    public async Task ExportSettingsAsync_UsesAppleIdentityServiceForP8Content()
+    {
+        var settings = new MauiSherpaSettings
+        {
+            AppleIdentities = new List<AppleIdentityData>
+            {
+                new("id1", "Old Name", "OLDKEY", "OLDISSUER", "", DateTime.UtcNow.AddDays(-1))
+            }
+        };
+
+        _mockSettingsService.Setup(x => x.GetSettingsAsync()).ReturnsAsync(settings);
+        _mockAppleIdentityService.Setup(x => x.GetIdentitiesAsync()).ReturnsAsync(new List<AppleIdentity>
+        {
+            new("id1", "Identity 1", "KEY1", "ISS1", null, "-----BEGIN PRIVATE KEY-----\nabc\n-----END PRIVATE KEY-----")
+        });
+
+        var encrypted = await _service.ExportSettingsAsync("password123");
+        var imported = await _service.ImportSettingsAsync(encrypted, "password123");
+
+        imported.AppleIdentities.Should().ContainSingle();
+        imported.AppleIdentities[0].Name.Should().Be("Identity 1");
+        imported.AppleIdentities[0].KeyId.Should().Be("KEY1");
+        imported.AppleIdentities[0].P8Content.Should().Contain("BEGIN PRIVATE KEY");
     }
 
     [Fact]
