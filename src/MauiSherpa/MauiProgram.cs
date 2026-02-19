@@ -81,6 +81,8 @@ public static class MauiProgram
         // Apple services
         builder.Services.AddSingleton<IAppleIdentityService, AppleIdentityService>();
         builder.Services.AddSingleton<IAppleIdentityStateService, AppleIdentityStateService>();
+        builder.Services.AddSingleton<IGoogleIdentityService, GoogleIdentityService>();
+        builder.Services.AddSingleton<IGoogleIdentityStateService, GoogleIdentityStateService>();
         builder.Services.AddSingleton<IAppleConnectService, AppleConnectService>();
         builder.Services.AddSingleton<IAppleRootCertService, AppleRootCertService>();
         builder.Services.AddSingleton<IApnsPushService, ApnsPushService>();

@@ -8,6 +8,7 @@
 @inject IMediator Mediator
 @inject IAppleIdentityService AppleIdentityService
 @inject IAppleIdentityStateService IdentityState
+@inject IGoogleIdentityService GoogleIdentityService
 @inject IAndroidSdkService SdkService
 @inject IAndroidSdkSettingsService SdkSettings
 @inject IOpenJdkSettingsService JdkSettings
@@ -270,6 +271,66 @@
         <div class="add-identity">
             <button class="btn btn-success" @onclick="ShowAddIdentityDialog">
                 <i class="fas fa-plus"></i> Add Apple Identity
+            </button>
+        </div>
+    </div>
+</div>
+
+<div class="settings-section">
+    <h2><i class="fab fa-google"></i> Google Identities</h2>
+    <p class="section-description">
+        Configure Google Cloud / Firebase service account credentials for push notifications and project management.
+        <a href="https://console.firebase.google.com/project/_/settings/serviceaccounts/adminsdk" target="_blank">Get service account JSON</a>
+    </p>
+    
+    <div class="settings-container">
+        @if (googleIdentities.Count == 0)
+        {
+            <div class="empty-identities">
+                <p>No Google identities configured</p>
+            </div>
+        }
+        else
+        {
+            <div class="identity-list">
+                @foreach (var identity in googleIdentities)
+                {
+                    <div class="identity-card">
+                        <div class="identity-header">
+                            <div class="identity-info">
+                                <i class="fab fa-google identity-icon"></i>
+                                <span class="identity-name">@identity.Name</span>
+                            </div>
+                            <div class="identity-actions">
+                                <button class="btn btn-sm btn-secondary" @onclick="@(() => TestGoogleIdentity(identity))" title="Test Connection">
+                                    <i class="fas fa-plug"></i> Test
+                                </button>
+                                <button class="btn btn-sm btn-secondary" @onclick="@(() => EditGoogleIdentity(identity))" title="Edit">
+                                    <i class="fas fa-edit"></i> Edit
+                                </button>
+                                <button class="btn btn-sm btn-danger" @onclick="@(() => DeleteGoogleIdentity(identity))" title="Delete">
+                                    <i class="fas fa-trash"></i> Delete
+                                </button>
+                            </div>
+                        </div>
+                        <div class="identity-details">
+                            <div class="detail-item">
+                                <span class="detail-label">PROJECT</span>
+                                <span class="detail-value mono"><span class="@(demoMode ? "demo-blur" : "")">@identity.ProjectId</span></span>
+                            </div>
+                            <div class="detail-item">
+                                <span class="detail-label">SERVICE ACCOUNT</span>
+                                <span class="detail-value mono"><span class="@(demoMode ? "demo-blur" : "")">@identity.ClientEmail</span></span>
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+        }
+        
+        <div class="add-identity">
+            <button class="btn btn-success" @onclick="ShowAddGoogleIdentityDialog">
+                <i class="fas fa-plus"></i> Add Google Identity
             </button>
         </div>
     </div>
@@ -745,6 +806,79 @@
                 </button>
                 <button class="btn btn-primary" @onclick="SaveIdentity" 
                         disabled="@(!CanSaveIdentity)">
+                    <i class="fas fa-save"></i> Save
+                </button>
+            </div>
+        </div>
+    </div>
+}
+
+@if (showGoogleIdentityDialog)
+{
+    <div class="modal-overlay" id="google-identity-modal">
+        <div class="modal" role="dialog" aria-modal="true" aria-labelledby="google-identity-title" @onclick:stopPropagation="true">
+            <div class="modal-header">
+                <h2 id="google-identity-title">@(editingGoogleIdentity == null ? "Add" : "Edit") Google Identity</h2>
+                <button class="close-btn" @onclick="CloseGoogleIdentityDialog">×</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>Name</label>
+                    <input type="text" @bind="googleIdentityName" placeholder="My Firebase Project" />
+                    <div class="help-text">A friendly name to identify this credential</div>
+                </div>
+                <div class="form-group">
+                    <label>Service Account JSON</label>
+                    <div class="help-text" style="margin-bottom: 0.5rem;">
+                        Download from <a href="https://console.firebase.google.com/project/_/settings/serviceaccounts/adminsdk" target="_blank">Firebase Console → Project Settings → Service Accounts</a> → Generate New Private Key
+                    </div>
+                    <div class="p8-input-toggle">
+                        <button class="toggle-btn @(saJsonInputMode == "file" ? "active" : "")" @onclick="@(() => saJsonInputMode = "file")">
+                            <i class="fas fa-folder-open"></i> File
+                        </button>
+                        <button class="toggle-btn @(saJsonInputMode == "text" ? "active" : "")" @onclick="@(() => saJsonInputMode = "text")">
+                            <i class="fas fa-paste"></i> Paste
+                        </button>
+                    </div>
+                    @if (saJsonInputMode == "file")
+                    {
+                        <div class="file-input-group">
+                            <input type="text" value="@googleIdentitySaJsonPath" placeholder="Path to service account JSON file" readonly />
+                            <button class="btn btn-secondary" @onclick="BrowseServiceAccountJsonFile">
+                                <i class="fas fa-folder-open"></i> Browse...
+                            </button>
+                        </div>
+                    }
+                    else
+                    {
+                        <textarea @bind="googleIdentitySaJsonContent" @bind:after="ParseServiceAccountJson"
+                                  placeholder='{"type": "service_account", "project_id": "...", ...}'
+                                  rows="8"
+                                  class="p8-textarea"></textarea>
+                    }
+                </div>
+                @if (!string.IsNullOrEmpty(googleIdentitySaJsonContent))
+                {
+                    @if (!string.IsNullOrEmpty(parsedProjectId))
+                    {
+                        <div class="p8-preview">
+                            <span class="p8-loaded"><i class="fas fa-check-circle"></i> Service account loaded — Project: <strong>@parsedProjectId</strong>, Email: <strong>@parsedClientEmail</strong></span>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="p8-preview">
+                            <span class="p8-error"><i class="fas fa-exclamation-triangle"></i> Invalid service account JSON format</span>
+                        </div>
+                    }
+                }
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" @onclick="CloseGoogleIdentityDialog">
+                    <i class="fas fa-times"></i> Cancel
+                </button>
+                <button class="btn btn-primary" @onclick="SaveGoogleIdentity"
+                        disabled="@(!CanSaveGoogleIdentity)">
                     <i class="fas fa-save"></i> Save
                 </button>
             </div>
@@ -1403,6 +1537,7 @@
 
     .p8-preview { margin-top: 0.5rem; }
     .p8-loaded { color: #38a169; font-size: 0.8125rem; }
+    .p8-error { color: var(--status-error-text, #e53e3e); font-size: 0.8125rem; }
 
     /* Cloud Provider Styles */
     .empty-providers { padding: 1.25rem; text-align: center; color: var(--text-muted); }
@@ -1610,6 +1745,17 @@
     private string identityP8Path = "";
     private string identityP8Content = "";
     private string p8InputMode = "file"; // "file" or "text"
+
+    // Google identity state
+    private List<GoogleIdentity> googleIdentities = new();
+    private bool showGoogleIdentityDialog = false;
+    private GoogleIdentity? editingGoogleIdentity = null;
+    private string googleIdentityName = "";
+    private string googleIdentitySaJsonPath = "";
+    private string googleIdentitySaJsonContent = "";
+    private string saJsonInputMode = "file"; // "file" or "text"
+    private string parsedProjectId = "";
+    private string parsedClientEmail = "";
     
     private bool isLoadingSdk = true;
     private bool isLoadingJdk = true;
@@ -1669,6 +1815,11 @@
         !string.IsNullOrWhiteSpace(identityKeyId) &&
         !string.IsNullOrWhiteSpace(identityIssuerId) &&
         !string.IsNullOrWhiteSpace(identityP8Content);
+
+    private bool CanSaveGoogleIdentity =>
+        !string.IsNullOrWhiteSpace(googleIdentityName) &&
+        !string.IsNullOrWhiteSpace(googleIdentitySaJsonContent) &&
+        !string.IsNullOrEmpty(parsedProjectId);
     
     private bool CanSaveProvider
     {
@@ -1707,6 +1858,7 @@
         SecretsPublisherService.OnPublishersChanged += OnPublishersChanged;
         
         await LoadAppleIdentities();
+        await LoadGoogleIdentities();
         await LoadCloudProviders();
         await LoadSecretsPublishers();
         await InitializeSdk();
@@ -1810,6 +1962,11 @@
     private async Task LoadAppleIdentities()
     {
         appleIdentities = (await AppleIdentityService.GetIdentitiesAsync()).ToList();
+    }
+
+    private async Task LoadGoogleIdentities()
+    {
+        googleIdentities = (await GoogleIdentityService.GetIdentitiesAsync()).ToList();
     }
     
     private async Task LoadCloudProviders()
@@ -2193,6 +2350,116 @@
     {
         await DialogService.CopyToClipboardAsync(text);
         await AlertService.ShowToastAsync("Copied to clipboard");
+    }
+
+    // Google Identity Methods
+
+    private void ShowAddGoogleIdentityDialog()
+    {
+        editingGoogleIdentity = null;
+        googleIdentityName = "";
+        googleIdentitySaJsonPath = "";
+        googleIdentitySaJsonContent = "";
+        saJsonInputMode = "file";
+        parsedProjectId = "";
+        parsedClientEmail = "";
+        showGoogleIdentityDialog = true;
+        _ = InitModalAsync("google-identity-modal");
+    }
+
+    private void EditGoogleIdentity(GoogleIdentity identity)
+    {
+        editingGoogleIdentity = identity;
+        googleIdentityName = identity.Name;
+        googleIdentitySaJsonPath = identity.ServiceAccountJsonPath ?? "";
+        googleIdentitySaJsonContent = identity.ServiceAccountJson ?? "";
+        saJsonInputMode = string.IsNullOrEmpty(identity.ServiceAccountJsonPath) && !string.IsNullOrEmpty(identity.ServiceAccountJson) ? "text" : "file";
+        ParseServiceAccountJson();
+        showGoogleIdentityDialog = true;
+        _ = InitModalAsync("google-identity-modal");
+    }
+
+    private void CloseGoogleIdentityDialog()
+    {
+        showGoogleIdentityDialog = false;
+        _ = DisposeModalAsync("google-identity-modal");
+        editingGoogleIdentity = null;
+    }
+
+    private async Task BrowseServiceAccountJsonFile()
+    {
+        var path = await DialogService.ShowFileDialogAsync(
+            "Select Service Account JSON File",
+            isSave: false,
+            filters: new[] { "*.json" });
+
+        if (!string.IsNullOrEmpty(path))
+        {
+            googleIdentitySaJsonPath = path;
+            googleIdentitySaJsonContent = await FileSystem.ReadFileAsync(path) ?? "";
+            ParseServiceAccountJson();
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    private void ParseServiceAccountJson()
+    {
+        var (projectId, clientEmail) = MauiSherpa.Core.Services.GoogleIdentityService.ParseServiceAccountJson(googleIdentitySaJsonContent);
+        parsedProjectId = projectId ?? "";
+        parsedClientEmail = clientEmail ?? "";
+
+        // Auto-fill name if empty
+        if (string.IsNullOrEmpty(googleIdentityName) && !string.IsNullOrEmpty(parsedProjectId))
+        {
+            googleIdentityName = parsedProjectId;
+        }
+    }
+
+    private async Task SaveGoogleIdentity()
+    {
+        // Re-parse to ensure we have current values
+        ParseServiceAccountJson();
+
+        var id = editingGoogleIdentity?.Id ?? Guid.NewGuid().ToString();
+
+        var identity = new GoogleIdentity(
+            Id: id,
+            Name: googleIdentityName.Trim(),
+            ProjectId: parsedProjectId,
+            ClientEmail: parsedClientEmail,
+            ServiceAccountJsonPath: string.IsNullOrEmpty(googleIdentitySaJsonPath) ? null : googleIdentitySaJsonPath,
+            ServiceAccountJson: googleIdentitySaJsonContent);
+
+        await GoogleIdentityService.SaveIdentityAsync(identity);
+        await AlertService.ShowToastAsync($"Google identity '{googleIdentityName}' saved");
+
+        CloseGoogleIdentityDialog();
+        await LoadGoogleIdentities();
+    }
+
+    private async Task TestGoogleIdentity(GoogleIdentity identity)
+    {
+        var success = await GoogleIdentityService.TestConnectionAsync(identity);
+        if (success)
+            await AlertService.ShowToastAsync("Service account validation passed!");
+        else
+            await AlertService.ShowAlertAsync("Validation Failed", "Service account JSON is invalid or missing required fields.");
+    }
+
+    private async Task DeleteGoogleIdentity(GoogleIdentity identity)
+    {
+        var confirm = await AlertService.ShowConfirmAsync(
+            "Delete Identity",
+            $"Are you sure you want to delete '{identity.Name}'?");
+
+        if (!confirm) return;
+
+        await GoogleIdentityService.DeleteIdentityAsync(identity.Id);
+        googleIdentities.Remove(identity);
+        StateHasChanged();
+
+        await AlertService.ShowToastAsync("Google identity deleted");
+        await LoadGoogleIdentities();
     }
     
     // Cloud Provider Methods
@@ -2750,6 +3017,7 @@
         if (showPublisherDialog) ClosePublisherDialog();
         else if (showProviderDialog) CloseProviderDialog();
         else if (showIdentityDialog) CloseIdentityDialog();
+        else if (showGoogleIdentityDialog) CloseGoogleIdentityDialog();
         else if (showImportDialog) CloseImportDialog();
         else if (showExportDialog) CloseExportDialog();
         InvokeAsync(StateHasChanged);

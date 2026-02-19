@@ -1,48 +1,20 @@
 @page "/firebase-push"
 @using MauiSherpa.Core.Interfaces
+@using MauiSherpa.Core.Services
 @using MauiSherpa.Services
 @inject IFirebasePushService PushService
+@inject IGoogleIdentityService GoogleIdentityService
+@inject IGoogleIdentityStateService GoogleIdentityState
 @inject IAlertService AlertService
 @inject IDialogService DialogService
 @inject IFileSystemService FileSystem
 @inject BlazorToastService ToastService
+@implements IDisposable
 
 <h1><i class="fas fa-paper-plane"></i> Firebase Push Testing</h1>
 <p class="page-description">Send test push notifications via Firebase Cloud Messaging to Android devices.</p>
 
-<!-- Credentials Section -->
-<div class="section">
-    <div class="section-header">
-        <h2><i class="fas fa-shield-alt"></i> Credentials</h2>
-        @if (hasCredentials)
-        {
-            <button class="btn btn-sm btn-danger" @onclick="ClearCredentials">
-                <i class="fas fa-trash"></i> Clear
-            </button>
-        }
-    </div>
-
-    <div class="credential-card">
-        @if (hasCredentials && !string.IsNullOrEmpty(projectId))
-        {
-            <div class="credential-status success">
-                <i class="fas fa-check-circle"></i>
-                <span>Service account configured for project: <strong>@projectId</strong></span>
-            </div>
-        }
-        else
-        {
-            <div class="credential-status warning">
-                <i class="fas fa-exclamation-triangle"></i>
-                <span>No service account configured</span>
-            </div>
-        }
-        <button class="btn btn-primary" @onclick="PickServiceAccountFile">
-            <i class="fas fa-upload"></i> @(hasCredentials ? "Replace" : "Upload") Service Account JSON
-        </button>
-        <p class="help-text">Download from Firebase Console → Project Settings → Service Accounts → Generate New Private Key</p>
-    </div>
-</div>
+<GoogleIdentityPicker />
 
 <!-- Compose Section -->
 <div class="section">
@@ -618,44 +590,41 @@
 
     protected override async Task OnInitializedAsync()
     {
-        await RefreshCredentialStatus();
+        GoogleIdentityState.OnSelectionChanged += OnIdentityChanged;
+        await SyncCredentialsFromIdentity();
+    }
+
+    private void OnIdentityChanged()
+    {
+        InvokeAsync(async () =>
+        {
+            await SyncCredentialsFromIdentity();
+            StateHasChanged();
+        });
+    }
+
+    private async Task SyncCredentialsFromIdentity()
+    {
+        var identity = GoogleIdentityState.SelectedIdentity;
+        if (identity != null && !string.IsNullOrEmpty(identity.ServiceAccountJson))
+        {
+            await PushService.SaveServiceAccountAsync(identity.ServiceAccountJson);
+            hasCredentials = true;
+            projectId = identity.ProjectId;
+        }
+        else
+        {
+            hasCredentials = await PushService.HasCredentialsAsync();
+            if (hasCredentials)
+                projectId = await PushService.GetProjectIdAsync();
+            else
+                projectId = null;
+        }
     }
 
     async Task RefreshCredentialStatus()
     {
-        hasCredentials = await PushService.HasCredentialsAsync();
-        if (hasCredentials)
-            projectId = await PushService.GetProjectIdAsync();
-        else
-            projectId = null;
-    }
-
-    async Task PickServiceAccountFile()
-    {
-        try
-        {
-            var path = await DialogService.PickOpenFileAsync("Select Service Account JSON", new[] { ".json" });
-            if (string.IsNullOrEmpty(path)) return;
-
-            var json = await File.ReadAllTextAsync(path);
-            await PushService.SaveServiceAccountAsync(json);
-            await RefreshCredentialStatus();
-            ToastService.Show("Service account saved", ToastType.Success);
-        }
-        catch (Exception ex)
-        {
-            await AlertService.ShowAlertAsync("Error", $"Failed to load service account: {ex.Message}");
-        }
-    }
-
-    async Task ClearCredentials()
-    {
-        if (!await AlertService.ShowConfirmAsync("Clear Credentials", "Remove all stored FCM credentials?"))
-            return;
-
-        await PushService.ClearCredentialsAsync();
-        await RefreshCredentialStatus();
-        ToastService.Show("Credentials cleared", ToastType.Info);
+        await SyncCredentialsFromIdentity();
     }
 
     async Task SendPush()
@@ -736,4 +705,9 @@
     }
 
     record HistoryEntry(FcmPushRequest Request, FcmPushResponse Response);
+
+    public void Dispose()
+    {
+        GoogleIdentityState.OnSelectionChanged -= OnIdentityChanged;
+    }
 }

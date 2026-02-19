@@ -1,0 +1,184 @@
+@using MauiSherpa.Core.Interfaces
+@using Microsoft.AspNetCore.Components
+@inject IGoogleIdentityService IdentityService
+@inject IGoogleIdentityStateService IdentityState
+@inject NavigationManager Navigation
+@implements IDisposable
+
+@if (identities.Count == 0)
+{
+    <div class="no-identity-container">
+        <div class="no-identity-icon">
+            <i class="fab fa-google"></i>
+        </div>
+        <h2>No Google Service Account</h2>
+        <p>Configure your Google Cloud / Firebase service account credentials to send push notifications and manage your projects.</p>
+        <button class="btn btn-primary" @onclick="GoToSettings">
+            <i class="fas fa-cog"></i> Configure in Settings
+        </button>
+    </div>
+}
+else
+{
+    <div class="identity-picker">
+        <label><i class="fab fa-google"></i> Google Identity:</label>
+        <select @bind="selectedIdentityId" @bind:after="OnSelectionChanged">
+            @foreach (var identity in identities)
+            {
+                <option value="@identity.Id">@identity.Name (@identity.ProjectId)</option>
+            }
+        </select>
+    </div>
+}
+
+<style>
+    .identity-picker {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        padding: 0.75rem 1rem;
+        background: var(--bg-tertiary);
+        border-radius: 0.5rem;
+        margin-bottom: 1.25rem;
+    }
+
+    .identity-picker label {
+        font-weight: 500;
+        color: var(--text-secondary);
+        white-space: nowrap;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .identity-picker select {
+        flex: 1;
+        max-width: 300px;
+        padding: 0.5rem 0.75rem;
+        border: 1px solid var(--border-color);
+        border-radius: 0.375rem;
+        font-size: 0.875rem;
+        background: var(--card-bg);
+        color: var(--text-primary);
+    }
+
+    .identity-picker select:focus {
+        outline: none;
+        border-color: var(--accent-primary);
+        box-shadow: 0 0 0 3px rgba(66, 153, 225, 0.1);
+    }
+
+    .no-identity-container {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 3.75rem 2.5rem;
+        background: var(--bg-tertiary);
+        border-radius: 0.75rem;
+        border: 2px dashed var(--border-color);
+        text-align: center;
+        margin: 1.25rem 0;
+    }
+
+    .no-identity-icon {
+        width: 80px;
+        height: 80px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #4285f4 0%, #34a853 50%, #fbbc05 100%);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: 1.5rem;
+    }
+
+    .no-identity-icon i {
+        font-size: 2.5rem;
+        color: white;
+    }
+
+    .no-identity-container h2 {
+        margin: 0 0 0.75rem 0;
+        font-size: 1.5rem;
+        font-weight: 600;
+        color: var(--text-primary);
+    }
+
+    .no-identity-container p {
+        margin: 0 0 1.5rem 0;
+        font-size: 0.9375rem;
+        color: var(--text-muted);
+        max-width: 400px;
+        line-height: 1.6;
+    }
+
+    .no-identity-container .btn-primary {
+        padding: 0.75rem 1.5rem;
+        font-size: 0.9375rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+</style>
+
+@code {
+    private List<GoogleIdentity> identities = new();
+    private string selectedIdentityId = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        identities = (await IdentityService.GetIdentitiesAsync()).ToList();
+
+        if (IdentityState.SelectedIdentity != null)
+        {
+            var selected = identities.FirstOrDefault(i => i.Id == IdentityState.SelectedIdentity.Id);
+            if (selected != null)
+            {
+                selectedIdentityId = selected.Id;
+                IdentityState.SetSelectedIdentity(selected);
+            }
+            else if (identities.Count > 0)
+            {
+                selectedIdentityId = identities[0].Id;
+                IdentityState.SetSelectedIdentity(identities[0]);
+            }
+            else
+            {
+                selectedIdentityId = "";
+                IdentityState.SetSelectedIdentity(null);
+            }
+        }
+        else if (identities.Count > 0)
+        {
+            selectedIdentityId = identities[0].Id;
+            IdentityState.SetSelectedIdentity(identities[0]);
+        }
+
+        IdentityState.OnSelectionChanged += HandleExternalSelectionChange;
+    }
+
+    private void OnSelectionChanged()
+    {
+        var identity = identities.FirstOrDefault(i => i.Id == selectedIdentityId);
+        IdentityState.SetSelectedIdentity(identity);
+    }
+
+    private void HandleExternalSelectionChange()
+    {
+        if (IdentityState.SelectedIdentity?.Id != selectedIdentityId)
+        {
+            selectedIdentityId = IdentityState.SelectedIdentity?.Id ?? "";
+            InvokeAsync(StateHasChanged);
+        }
+    }
+
+    private void GoToSettings()
+    {
+        Navigation.NavigateTo("settings");
+    }
+
+    public void Dispose()
+    {
+        IdentityState.OnSelectionChanged -= HandleExternalSelectionChange;
+    }
+}

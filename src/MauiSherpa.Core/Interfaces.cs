@@ -285,6 +285,15 @@ public record AppleIdentity(
     string? P8KeyContent
 );
 
+public record GoogleIdentity(
+    string Id,
+    string Name,
+    string ProjectId,
+    string ClientEmail,
+    string? ServiceAccountJsonPath,
+    string? ServiceAccountJson
+);
+
 public record AppleBundleId(
     string Id,
     string Identifier,
@@ -453,6 +462,22 @@ public interface IAppleIdentityStateService
     AppleIdentity? SelectedIdentity { get; }
     event Action? OnSelectionChanged;
     void SetSelectedIdentity(AppleIdentity? identity);
+}
+
+public interface IGoogleIdentityService
+{
+    Task<IReadOnlyList<GoogleIdentity>> GetIdentitiesAsync();
+    Task<GoogleIdentity?> GetIdentityAsync(string id);
+    Task SaveIdentityAsync(GoogleIdentity identity);
+    Task DeleteIdentityAsync(string id);
+    Task<bool> TestConnectionAsync(GoogleIdentity identity);
+}
+
+public interface IGoogleIdentityStateService
+{
+    GoogleIdentity? SelectedIdentity { get; }
+    event Action? OnSelectionChanged;
+    void SetSelectedIdentity(GoogleIdentity? identity);
 }
 
 public interface IAppleConnectService
